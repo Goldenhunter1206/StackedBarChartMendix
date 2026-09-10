@@ -39,6 +39,12 @@
     color: var(--sbc-ink);
     background: var(--sbc-surface);
     font-variant-numeric: tabular-nums;
+    /*
+     * Chart chrome is not prose. Without this, dragging an element sweeps a
+     * text selection across every label it passes.
+     */
+    user-select: none;
+    -webkit-user-select: none;
 
     *,
     *::before,
@@ -276,6 +282,43 @@
 
 .sbc-seg--interactive {
     cursor: pointer;
+}
+
+/*
+ * Only while drag and drop is enabled: claiming touch gestures on elements
+ * would otherwise stop people swiping the chart sideways to scroll it.
+ */
+.sbc--draggable .sbc-seg {
+    touch-action: none;
+}
+
+.sbc--draggable .sbc-seg--interactive {
+    cursor: grab;
+}
+
+.sbc--draggable .sbc-seg--dragging {
+    cursor: grabbing;
+}
+
+/* New elements grow into place instead of appearing fully formed. */
+.sbc-seg--enter {
+    animation: sbc-seg-in var(--sbc-duration) var(--sbc-ease) both;
+}
+
+@keyframes sbc-seg-in {
+    from {
+        opacity: 0;
+        transform: translate3d(0, var(--sbc-seg-y, 0), 0) scaleY(0.4);
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sbc-seg--enter {
+        animation: none;
+    }
 }
 
 .sbc-seg--entering {
@@ -645,4 +688,135 @@
 .sbc-menu-empty {
     padding: 10px;
     color: var(--sbc-ink-muted);
+}
+
+/* ------------------------------------------------------ drag and drop --- */
+
+.sbc-bar--drop-target .sbc-bar-stack::before {
+    content: "";
+    position: absolute;
+    inset: -6px -8px;
+    border: 1px dashed var(--sbc-focus);
+    border-radius: var(--sbc-radius-lg);
+    background: color-mix(in srgb, var(--sbc-focus) 6%, transparent);
+    pointer-events: none;
+}
+
+/* Drawn in the layer above everything, following the cursor. */
+.sbc-ghost {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 8px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    /* Never a drop target itself. */
+    pointer-events: none;
+    box-shadow:
+        0 2px 6px rgb(15 23 42 / 24%),
+        0 16px 32px -12px rgb(15 23 42 / 40%);
+    opacity: 0.94;
+}
+
+.sbc-ghost-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-shadow: 0 1px 2px rgb(0 0 0 / 35%);
+}
+
+/* --------------------------------------------------------- dialog --- */
+
+.sbc-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 10001;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgb(15 23 42 / 44%);
+}
+
+.sbc-dialog {
+    --sbc-ink: #0f172a;
+    --sbc-ink-muted: #64748b;
+    --sbc-surface-raised: #ffffff;
+    --sbc-surface-sunken: #f8fafc;
+    --sbc-border: #e2e8f0;
+    --sbc-focus: #6366f1;
+
+    box-sizing: border-box;
+    width: min(420px, 100%);
+    padding: 20px;
+    border-radius: 16px;
+    background: var(--sbc-surface-raised);
+    color: var(--sbc-ink);
+    font-family: inherit;
+    box-shadow: 0 24px 60px -20px rgb(15 23 42 / 50%);
+
+    * {
+        box-sizing: border-box;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .sbc-dialog {
+        --sbc-ink: #e2e8f0;
+        --sbc-ink-muted: #94a3b8;
+        --sbc-surface-raised: #1e293b;
+        --sbc-surface-sunken: #0f172a;
+        --sbc-border: #334155;
+    }
+}
+
+.sbc-dialog-title {
+    margin: 0 0 6px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.sbc-dialog-message {
+    margin: 0 0 20px;
+    color: var(--sbc-ink-muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.sbc-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.sbc-dialog-actions button {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--sbc-border);
+    background: var(--sbc-surface-raised);
+    color: inherit;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.sbc-dialog-actions button:focus-visible {
+    outline: 2px solid var(--sbc-focus);
+    outline-offset: 2px;
+}
+
+.sbc-dialog-confirm {
+    border-color: var(--sbc-focus);
+    background: var(--sbc-focus);
+    color: #fff;
+    font-weight: 600;
+}
+
+.sbc-dialog-cancel:hover {
+    background: var(--sbc-surface-sunken);
 }

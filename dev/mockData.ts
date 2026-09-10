@@ -56,12 +56,25 @@ export function generateTasks(barCount: number, perBar: number, seed = 7): Task[
 
 export interface MockOptions {
     tasks: Task[];
+    /**
+     * Stable object identities, as Mendix supplies. A refresh hands back a new
+     * array carrying the same ids — which is what the widget keys animation and
+     * optimistic drops off — so the harness must do the same.
+     */
+    items: ObjectItem[];
     overrides?: Partial<StackedBarChartContainerProps>;
     onEvent?: (message: string) => void;
+    /** Stands in for the microflow a drop would call. */
+    onMove?: (elementId: string, targetBarKey: string, targetIndex: number) => void;
 }
 
-export function mockProps({ tasks, overrides = {}, onEvent = () => undefined }: MockOptions): StackedBarChartContainerProps {
-    const items = objectItems(tasks.length);
+export function mockProps({
+    tasks,
+    items,
+    overrides = {},
+    onEvent = () => undefined,
+    onMove
+}: MockOptions): StackedBarChartContainerProps {
     const index = new Map<string, Task>();
     items.forEach((item, i) => index.set(item.id, tasks[i]));
     const task = (item: ObjectItem): Task => index.get(item.id)!;
@@ -173,10 +186,16 @@ export function mockProps({ tasks, overrides = {}, onEvent = () => undefined }: 
         draggableExpression: undefined,
         acceptsDropExpression: undefined,
         sequenceAttribute: undefined,
-        onDrop: listAction((item, args) => onEvent(`Drop -> ${task(item).name} ${JSON.stringify(args)}`)),
+        onDrop: listAction((item, args) => {
+            const payload = args as { targetBarKey: string; targetIndex: { toNumber(): number } };
+            onEvent(`Drop -> ${task(item).name} to ${payload.targetBarKey} @ ${payload.targetIndex}`);
+            // Simulate the microflow committing and the data source refreshing.
+            onMove?.(item.id, payload.targetBarKey, Number(payload.targetIndex));
+        }),
         dropCommitTimeout: 8000,
 
         confirmationMode: "none",
+
         confirmTitle: undefined,
         confirmMessage: undefined,
         confirmOkCaption: "Move",

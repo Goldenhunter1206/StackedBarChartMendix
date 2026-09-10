@@ -22,6 +22,10 @@ export interface BarProps {
     /** Colour keys to fade out, used by legend hover. Null means no dimming. */
     dimmedColors: Set<string> | null;
     draggingKey: string | null;
+    /** Keys that have just appeared in the data, for the enter animation. */
+    enteringKeys: Set<string>;
+    /** True while a drag is hovering this bar as its drop target. */
+    dropTarget: boolean;
     labelOf: (element: ChartElement) => string;
     valueText: (value: number) => string;
 }
@@ -36,7 +40,11 @@ function BarComponent(props: BarProps): ReactElement {
     const style: CSSProperties = { left: `${layout.x}px`, width: `${layout.width}px` };
 
     return (
-        <div className="sbc-bar" style={style} data-bar={layout.bar.key}>
+        <div
+            className={classNames("sbc-bar", { "sbc-bar--drop-target": props.dropTarget })}
+            style={style}
+            data-bar={layout.bar.key}
+        >
             <div className="sbc-bar-stack">
                 {layout.nodes.map(node => (
                     <Segment
@@ -55,6 +63,7 @@ function BarComponent(props: BarProps): ReactElement {
                         dimmed={props.dimmedColors !== null && !props.dimmedColors.has(node.element.colorKey)}
                         highlighted={false}
                         dragging={props.draggingKey === node.key}
+                        entering={props.enteringKeys.has(node.key)}
                         ariaLabel={ariaLabelFor(props, node.element, node.count)}
                     />
                 ))}

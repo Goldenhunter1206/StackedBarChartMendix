@@ -19,6 +19,8 @@ export interface SegmentProps {
     dimmed: boolean;
     highlighted: boolean;
     dragging: boolean;
+    /** True on the render where this element first appears in the data. */
+    entering: boolean;
     ariaLabel: string;
 }
 
@@ -35,7 +37,10 @@ export interface SegmentProps {
 function SegmentComponent(props: SegmentProps): ReactElement {
     const style: CSSProperties = {
         height: `${props.height}px`,
-        transform: `translate3d(0, ${-props.y}px, 0)`,
+        // Kept in a custom property so the enter keyframes can reuse the exact
+        // same offset instead of fighting the inline transform.
+        ["--sbc-seg-y" as string]: `${-props.y}px`,
+        transform: "translate3d(0, var(--sbc-seg-y), 0)",
         background: props.color,
         ["--sbc-seg-radius" as string]: `${props.radius}px`
     };
@@ -47,7 +52,8 @@ function SegmentComponent(props: SegmentProps): ReactElement {
                 "sbc-seg--cluster": props.count > 1,
                 "sbc-seg--dimmed": props.dimmed,
                 "sbc-seg--highlight": props.highlighted,
-                "sbc-seg--dragging": props.dragging
+                "sbc-seg--dragging": props.dragging,
+                "sbc-seg--enter": props.entering
             })}
             style={style}
             data-el={props.elementKey}

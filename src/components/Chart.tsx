@@ -8,15 +8,21 @@ import { useChartModel } from "../hooks/useChartModel";
 import { useElementSize } from "../hooks/useElementSize";
 import { useLazyText } from "../hooks/useLazyText";
 import { BarTarget, ElementTarget, useChartInteractions } from "../hooks/useChartInteractions";
+import { useDragAndDrop } from "../hooks/useDragAndDrop";
 import { useVirtualBars } from "../hooks/useVirtualBars";
+import { applyMove, MoveDescription } from "../model/dragModel";
+import { dropArguments, writeSequence } from "../model/dropActions";
 import { layoutChart, LayoutOptions } from "../model/layout";
-import { ChartBar, ChartElement } from "../model/types";
+import { ChartBar, ChartElement, ChartModel } from "../model/types";
 import { CAPTION_HEIGHT, HEADROOM, MIN_PLOT_HEIGHT } from "../ui/constants";
 import { Bar } from "./Bar";
+import { ConfirmDialog } from "./ConfirmDialog";
+import { DragLayer } from "./DragLayer";
 import { elementMenuTitle, MenuEntry, MenuPanel, useElementMenuEntries } from "./ElementMenu";
 import { EmptyState, LoadingSkeleton } from "./EmptyState";
 import { GridLines } from "./GridLines";
 import { Legend } from "./Legend";
+import { readFlag, readText } from "../hooks/useLazyText";
 import { Tooltip } from "./Tooltip";
 import { ValueAxis } from "./ValueAxis";
 
@@ -29,6 +35,7 @@ export function Chart(props: StackedBarChartContainerProps): ReactElement {
 
     const model = useChartModel(props);
     const labelOf = useLazyText(props.labelTemplate, model);
+
 
     const [activeColorKey, setActiveColorKey] = useState<string | null>(null);
     const [menu, setMenu] = useState<OpenMenu | null>(null);
@@ -61,7 +68,110 @@ export function Chart(props: StackedBarChartContainerProps): ReactElement {
         ]
     );
 
-    const layout = useMemo(() => layoutChart(model, layoutOptions), [model, layoutOptions]);
+    // The move the user just made, held locally until the data source confirms
+    // it. A Mendix action returns nothing at all, so the only honest signals
+    // are "the data changed" and "we waited long enough".
+    const [pending, setPending] = useState<MoveDescription | null>(null);
+    const pendingBaseline = useRef<ChartModel | null>(null);
+    const [confirming, setConfirming] = useState<MoveDescription | null>(null);
+
+    useEffect(() => {
+        if (pendingBaseline.current !== null && pendingBaseline.current !== model) {
+            // New data arrived: either it carries the move, in which case the
+            // optimistic copy is redundant, or it does not, in which case the
+            // element snaps back. Both are handled by dropping the overlay.
+            pendingBaseline.current = null;
+            setPending(null);
+        }
+    }, [model]);
+
+    useEffect(() => {
+        if (!pending) {
+            return;
+        }
+        const timer = window.setTimeout(() => {
+            pendingBaseline.current = null;
+            setPending(null);
+        }, Math.max(1000, props.dropCommitTimeout));
+        return () => window.clearTimeout(timer);
+    }, [pending, props.dropCommitTimeout]);
+
+    const optimisticModel = useMemo(() => (pending ? applyMove(model, pending) : model), [model, pending]);
+
+    const commitMove = useCallback(
+        (move: MoveDescription) => {
+            pendingBaseline.current = model;
+            setPending(move);
+            writeSequence(props.sequenceAttribute, model, move);
+            const action = props.onDrop?.get(move.element.item);
+            if (action?.canExecute) {
+                action.execute(dropArguments(move));
+            }
+        },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [model, props.sequenceAttribute, props.onDrop]
+    );
+
+    const requestMove = useCallback(
+        (move: MoveDescription) => {
+            if (props.confirmationMode === "dialog") {
+                setConfirming(move);
+                return;
+            }
+            if (props.confirmationMode === "action" && props.onDropConfirmRequest) {
+                // The confirmation page owns the outcome from here; stay
+                // optimistic until the data source says otherwise.
+                pendingBaseline.current = model;
+                setPending(move);
+                const action = props.onDropConfirmRequest.get(move.element.item);
+                if (action.canExecute) {
+                    action.execute(dropArguments(move));
+                }
+                return;
+            }
+            commitMove(move);
+        },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [commitMove, model, props.confirmationMode, props.onDropConfirmRequest]
+    );
+
+    const baseLayout = useMemo(
+        () => layoutChart(optimisticModel, layoutOptions),
+        [optimisticModel, layoutOptions]
+    );
+
+    const canDragElement = useCallback(
+        (element: ChartElement) => readFlag(props.draggableExpression, element.item, true),
+        [props.draggableExpression]
+    );
+
+    const canDropOnBar = useCallback(
+        (barKey: string) => {
+            const bar = optimisticModel.bars.find(candidate => candidate.key === barKey);
+            return bar?.item ? readFlag(props.acceptsDropExpression, bar.item, true) : true;
+        },
+        [optimisticModel, props.acceptsDropExpression]
+    );
+
+    const { drag, previewModel } = useDragAndDrop({
+        scrollRef,
+        model: optimisticModel,
+        layout: baseLayout,
+        layoutOptions,
+        enabled: props.enableDragDrop && confirming === null,
+        allowReorderWithinBar: props.allowReorderWithinBar,
+        allowMoveAcrossBars: props.allowMoveAcrossBars,
+        canDrag: canDragElement,
+        canDrop: canDropOnBar,
+        onDrop: requestMove
+    });
+
+    // While dragging, lay out the model as it would look after the drop, so the
+    // target slot opens up under the cursor.
+    const layout = useMemo(
+        () => (previewModel ? layoutChart(previewModel, layoutOptions) : baseLayout),
+        [previewModel, baseLayout, layoutOptions]
+    );
 
     const pitch = layoutOptions.barWidth + layoutOptions.barGap;
     const range = useVirtualBars(
@@ -137,6 +247,8 @@ export function Chart(props: StackedBarChartContainerProps): ReactElement {
 
     const onLegendHover = useCallback((colorKey: string | null) => setActiveColorKey(colorKey), []);
 
+    const enteringKeys = useEnteringKeys(optimisticModel, animate);
+
     // Roving tab index: the chart is a single tab stop, and arrow keys move
     // within it. Without this, a chart with 10,000 elements would be 10,000
     // tab stops.
@@ -173,7 +285,10 @@ export function Chart(props: StackedBarChartContainerProps): ReactElement {
     return (
         <div
             ref={rootRef}
-            className={classNames("sbc", props.class, { "sbc--no-motion": !animate })}
+            className={classNames("sbc", props.class, {
+                "sbc--no-motion": !animate,
+                "sbc--draggable": props.enableDragDrop
+            })}
             style={rootStyle}
             role="figure"
             aria-label={ariaSummary(model.bars.length, model.elementCount)}
@@ -222,10 +337,12 @@ export function Chart(props: StackedBarChartContainerProps): ReactElement {
                                 interactive={props.enableElementMenu && props.menuItems.length > 0}
                                 addButton={props.showAddButton}
                                 addEnabled
+                                dropTarget={drag?.target?.barKey === bar.bar.key}
                                 addTooltip={props.addButtonTooltip}
                                 tabbableKey={tabbableKey}
                                 dimmedColors={dimmedColors}
-                                draggingKey={null}
+                                draggingKey={drag?.elementKey ?? null}
+                                enteringKeys={enteringKeys}
                                 labelOf={labelOf}
                                 valueText={valueText}
                             />
@@ -234,7 +351,26 @@ export function Chart(props: StackedBarChartContainerProps): ReactElement {
                 </div>
             </div>
 
-            {hover && props.tooltipMode !== "none" && menu === null ? (
+            {drag ? <DragLayer drag={drag} label={labelOf(drag.element)} /> : null}
+
+            {confirming ? (
+                <ConfirmDialog
+                    title={readText(props.confirmTitle, confirming.element.item) || "Move element"}
+                    message={
+                        readText(props.confirmMessage, confirming.element.item) ||
+                        `Move this element to ${confirming.targetBarKey}?`
+                    }
+                    confirmCaption={props.confirmOkCaption || "Move"}
+                    cancelCaption={props.confirmCancelCaption || "Cancel"}
+                    onConfirm={() => {
+                        commitMove(confirming);
+                        setConfirming(null);
+                    }}
+                    onCancel={() => setConfirming(null)}
+                />
+            ) : null}
+
+            {hover && props.tooltipMode !== "none" && menu === null && drag === null ? (
                 <Tooltip target={hover} config={props} />
             ) : null}
 
@@ -424,6 +560,47 @@ function countMountedNodes(layout: ReturnType<typeof layoutChart>, start: number
         count += layout.bars[i].nodes.length;
     }
     return count;
+}
+
+/**
+ * Keys that appear in the data for the first time.
+ *
+ * Comparing against the previous data — rather than against what is mounted —
+ * matters: virtualization mounts and unmounts elements constantly while
+ * scrolling, and animating those would make every scroll shimmer.
+ */
+function useEnteringKeys(model: ChartModel, enabled: boolean): Set<string> {
+    const previousKeys = useRef<Set<string> | null>(null);
+
+    const entering = useMemo(() => {
+        const previous = previousKeys.current;
+        const result = new Set<string>();
+        if (!enabled) {
+            return result;
+        }
+        for (const bar of model.bars) {
+            for (const element of bar.elements) {
+                if (!previous || !previous.has(element.key)) {
+                    result.add(element.key);
+                }
+            }
+        }
+        return result;
+    }, [model, enabled]);
+
+    // Written in an effect rather than during render, so a double render in
+    // StrictMode does not consume the "new" flag before it is used.
+    useEffect(() => {
+        const keys = new Set<string>();
+        for (const bar of model.bars) {
+            for (const element of bar.elements) {
+                keys.add(element.key);
+            }
+        }
+        previousKeys.current = keys;
+    }, [model]);
+
+    return entering;
 }
 
 function ariaSummary(barCount: number, elementCount: number): string {

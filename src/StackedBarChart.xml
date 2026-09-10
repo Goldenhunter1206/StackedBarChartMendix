@@ -500,8 +500,8 @@
                         <actionVariable key="targetBarKey" type="String" caption="Target bar key" />
                         <actionVariable key="sourceIndex" type="Integer" caption="Source index" />
                         <actionVariable key="targetIndex" type="Integer" caption="Target index" />
-                        <actionVariable key="previousElementGuid" type="String" caption="Element above the drop position" />
-                        <actionVariable key="nextElementGuid" type="String" caption="Element below the drop position" />
+                        <actionVariable key="previousElementGuid" type="String" caption="Element below the drop position" />
+                        <actionVariable key="nextElementGuid" type="String" caption="Element above the drop position" />
                     </actionVariables>
                 </property>
                 <property key="dropCommitTimeout" type="integer" defaultValue="8000">
@@ -543,8 +543,8 @@
                         <actionVariable key="targetBarKey" type="String" caption="Target bar key" />
                         <actionVariable key="sourceIndex" type="Integer" caption="Source index" />
                         <actionVariable key="targetIndex" type="Integer" caption="Target index" />
-                        <actionVariable key="previousElementGuid" type="String" caption="Element above the drop position" />
-                        <actionVariable key="nextElementGuid" type="String" caption="Element below the drop position" />
+                        <actionVariable key="previousElementGuid" type="String" caption="Element below the drop position" />
+                        <actionVariable key="nextElementGuid" type="String" caption="Element above the drop position" />
                     </actionVariables>
                 </property>
             </propertyGroup>
