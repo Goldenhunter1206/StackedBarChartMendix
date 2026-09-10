@@ -28,6 +28,7 @@ function model(bars: Array<{ key: string; values: number[] }>): ChartModel {
     });
     return {
         bars: chartBars,
+        legend: [],
         maxTotal: Math.max(0, ...chartBars.map(b => b.total)),
         elementCount: chartBars.reduce((n, b) => n + b.elements.length, 0),
         truncated: false

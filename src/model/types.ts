@@ -50,8 +50,17 @@ export interface ChartBar {
     index: number;
 }
 
+/** One row of the legend: a distinct colour and what it stands for. */
+export interface LegendEntry {
+    colorKey: string;
+    color: string;
+    label: string;
+    count: number;
+}
+
 export interface ChartModel {
     bars: ChartBar[];
+    legend: LegendEntry[];
     /** Largest bar total, i.e. the top of the value axis before it is rounded. */
     maxTotal: number;
     elementCount: number;

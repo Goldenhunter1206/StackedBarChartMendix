@@ -4,7 +4,7 @@ import { Big } from "big.js";
 import { StackedBarChartContainerProps } from "../../typings/StackedBarChartProps";
 import { buildColorRanker, FALLBACK_COLOR, normalizeColor, resolvePalette } from "./color";
 import { createBarComparator, createElementComparator } from "./sorting";
-import { ChartBar, ChartElement, ChartModel, SortSpec, SortValue } from "./types";
+import { ChartBar, ChartElement, ChartModel, LegendEntry, SortSpec, SortValue } from "./types";
 
 /**
  * The subset of widget properties the model builder reads. Narrowing it keeps
@@ -52,6 +52,9 @@ export function buildModel(props: BuildModelProps): ChartModel {
     const seriesColors = new Map<string, string>();
 
     const barsByKey = new Map<string, ChartBar>();
+    // One representative element per distinct colour, so the legend can be
+    // labelled without reading a label for every element in the data.
+    const colorGroups = new Map<string, { color: string; sample: ChartElement; count: number }>();
 
     for (let index = 0; index < items.length; index++) {
         const item = items[index];
@@ -77,6 +80,13 @@ export function buildModel(props: BuildModelProps): ChartModel {
         }
         bar.elements.push(element);
         bar.total += element.value;
+
+        const group = colorGroups.get(element.colorKey);
+        if (group) {
+            group.count++;
+        } else {
+            colorGroups.set(element.colorKey, { color: element.color, sample: element, count: 1 });
+        }
     }
 
     applyBarIdentity(props, barsByKey);
@@ -98,6 +108,7 @@ export function buildModel(props: BuildModelProps): ChartModel {
     const totalCount = props.datasource.totalCount;
     return {
         bars,
+        legend: buildLegend(props, colorGroups),
         maxTotal,
         elementCount: items.length,
         truncated: props.datasource.hasMoreItems === true,
@@ -152,6 +163,31 @@ function applyBarIdentity(props: BuildModelProps, barsByKey: Map<string, ChartBa
             bar.label = labelFromKey(bar.key);
         }
     }
+}
+
+/**
+ * Names each distinct colour. Labels are read only for the handful of sample
+ * elements, never for the whole data set.
+ */
+function buildLegend(
+    props: BuildModelProps,
+    groups: Map<string, { color: string; sample: ChartElement; count: number }>
+): LegendEntry[] {
+    const entries: LegendEntry[] = [];
+    for (const [colorKey, group] of groups) {
+        // The series attribute names what a colour means, which is what a
+        // legend is for. An element label only names one element that happens
+        // to have that colour, so it is the weaker fallback.
+        let label: string | undefined;
+        if (props.seriesAttribute) {
+            label = stringifyKey(readAttribute(props.seriesAttribute, group.sample.item));
+        }
+        if (!label) {
+            label = readExpression(props.labelTemplate, group.sample.item);
+        }
+        entries.push({ colorKey, color: group.color, label: label || group.color, count: group.count });
+    }
+    return entries;
 }
 
 function labelFromKey(key: string): string {

@@ -137,7 +137,7 @@ describe("buildModel", () => {
             props(rows, {
                 datasource: listValue(items),
                 barKeyAttribute: listAttribute<string>(item => rows[items.indexOf(item)].bar),
-                valueAttribute: listAttribute<Big>(item => big(1), { type: "Decimal" }),
+                valueAttribute: listAttribute<Big>(() => big(1), { type: "Decimal" }),
                 colorMode: "palette",
                 seriesAttribute: listAttribute<string>(item => series[items.indexOf(item)])
             })

@@ -109,7 +109,7 @@
                 </property>
                 <property key="seriesAttribute" type="attribute" dataSource="datasource" required="false">
                     <caption>Series attribute</caption>
-                    <description>Elements are grouped by this attribute and each distinct value is assigned a palette colour automatically.</description>
+                    <description>Names the series an element belongs to. Used to label the legend, and — in automatic palette mode — to assign each distinct value its own colour.</description>
                     <attributeTypes>
                         <attributeType name="String" />
                         <attributeType name="Enum" />
