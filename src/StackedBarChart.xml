@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<widget id="com.dynamicchart.stackedbarchart.StackedBarChart" pluginWidget="true" needsEntityContext="false" offlineCapable="true" supportedPlatform="Web"
-    xmlns="http://www.mendix.com/widget/1.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://www.mendix.com/widget/1.0/ ../node_modules/mendix/custom_widget.xsd">
+<widget id="com.dynamicchart.stackedbarchart.StackedBarChart" pluginWidget="true" offlineCapable="true" xmlns="http://www.mendix.com/widget/1.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mendix.com/widget/1.0/ ../node_modules/mendix/custom_widget.xsd">
     <name>Stacked Bar Chart</name>
     <description>A modern, animated stacked bar chart with per-element colouring, click-to-edit menus, per-bar add buttons, drag and drop between bars and configurable tooltips.</description>
-    <studioProCategory>Charts</studioProCategory>
     <properties>
 
         <propertyGroup caption="Data source">
@@ -534,11 +531,11 @@
                         <enumerationValue key="action">Call an action</enumerationValue>
                     </enumerationValues>
                 </property>
-                <property key="confirmTitle" type="textTemplate" dataSource="datasource" required="false" defaultValue="Move element">
+                <property key="confirmTitle" type="textTemplate" dataSource="datasource" required="false">
                     <caption>Dialog title</caption>
                     <description />
                 </property>
-                <property key="confirmMessage" type="textTemplate" dataSource="datasource" required="false" defaultValue="Move this element to the selected position?">
+                <property key="confirmMessage" type="textTemplate" dataSource="datasource" required="false">
                     <caption>Dialog message</caption>
                     <description />
                 </property>

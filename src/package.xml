@@ -4,5 +4,8 @@
         <widgetFiles>
             <widgetFile path="StackedBarChart.xml" />
         </widgetFiles>
+        <files>
+            <file path="com/dynamicchart/stackedbarchart/" />
+        </files>
     </clientModule>
 </package>

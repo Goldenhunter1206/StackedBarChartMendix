@@ -1,6 +1,17 @@
 import { StackedBarChartPreviewProps } from "../typings/StackedBarChartProps";
 import { hideNestedProperties, hideProperties, Problem, Properties } from "./utils/editorTypes";
 
+/*
+ * Note on data source properties.
+ *
+ * Studio Pro hands `check` and `getProperties` the same descriptor for every
+ * data source property on the widget, configured or not — an unset
+ * `barsDatasource` arrives carrying the caption of the elements data source.
+ * There is therefore no way to tell from here whether a bars data source has
+ * been selected, so nothing below branches on one: the bars properties are
+ * always offered, and their descriptions say when they apply.
+ */
+
 /**
  * Trims the Studio Pro property grid to what the current configuration
  * actually uses. The widget exposes a lot of properties; showing all of them
@@ -20,13 +31,6 @@ export function getProperties(values: StackedBarChartPreviewProps, defaultProper
     }
     if (values.colorOrderMode !== "custom") {
         hidden.push("colorOrderList");
-    }
-
-    // Everything that only means something alongside a bars data source.
-    if (!values.barsDatasource) {
-        hidden.push("barsKeyAttribute", "barsLabelTemplate", "showEmptyBars", "onBarAdd", "acceptsDropExpression");
-    } else {
-        hidden.push("onAddElement");
     }
 
     if (values.heightMode === "parent") {
@@ -54,6 +58,10 @@ export function getProperties(values: StackedBarChartPreviewProps, defaultProper
         hidden.push("onAddElement", "onBarAdd");
     } else {
         hidden.push("addMenuItems");
+    }
+
+    if (!values.enableDragDrop) {
+        hidden.push("acceptsDropExpression");
     }
 
     if (!values.enableDragDrop) {
@@ -130,14 +138,6 @@ export function check(values: StackedBarChartPreviewProps): Problem[] {
             property: "seriesAttribute",
             severity: "error",
             message: "Automatic palette colouring needs a series attribute to group elements by."
-        });
-    }
-
-    if (values.barsDatasource && !values.barsKeyAttribute) {
-        problems.push({
-            property: "barsKeyAttribute",
-            severity: "error",
-            message: "Set the bar key so bars can be matched to their elements."
         });
     }
 
