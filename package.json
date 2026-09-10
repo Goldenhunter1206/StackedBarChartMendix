@@ -33,11 +33,11 @@
     "devDependencies": {
         "@mendix/pluggable-widgets-tools": "^10.24.1",
         "@types/big.js": "^6.2.2",
-        "@vitejs/plugin-react": "^4.7.0",
+        "@vitejs/plugin-react": "^6.1.1",
         "big.js": "^6.2.2",
         "playwright": "^1.63.0",
         "sass": "^1.104.0",
-        "vite": "^5.4.21"
+        "vite": "^8.2.2"
     },
     "overrides": {
         "react": "18.2.0",
@@ -50,5 +50,10 @@
         "react-dom": "18.2.0",
         "@types/react": "18.2.0",
         "@types/react-dom": "18.2.0"
+    },
+    "_dependencyNotes": {
+        "@mendix/pluggable-widgets-tools": "Pinned to 10.x on purpose. Version 11 targets `mendix ^11.8.0` and React 19, which would make the widget Mendix 11 only. The 10.24 line builds a widget that runs on Mendix 10.24 and on Mendix 11.",
+        "big.js": "Held at 6.x to match the runtime. big.js is an external in the web build, supplied by the Mendix client, and both toolchain lines pin ^6.0.2. Moving to 7 would type against a version the platform does not ship.",
+        "react": "Pinned via overrides at 18.2.0, the version the Mendix 10 client provides."
     }
 }
