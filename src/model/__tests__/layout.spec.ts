@@ -58,16 +58,28 @@ describe("layoutChart", () => {
     });
 
     it("scales heights against the shared axis so bars stay comparable", () => {
-        const layout = layoutChart(model([{ key: "a", values: [50] }, { key: "b", values: [100] }]), OPTIONS);
+        const layout = layoutChart(
+            model([
+                { key: "a", values: [50] },
+                { key: "b", values: [100] }
+            ]),
+            OPTIONS
+        );
         const [a, b] = layout.bars;
         expect(b.stackHeight).toBeCloseTo(a.stackHeight * 2, 6);
     });
 
     it("keeps every bar full height in percentage mode", () => {
-        const layout = layoutChart(model([{ key: "a", values: [1, 1] }, { key: "b", values: [10] }]), {
-            ...OPTIONS,
-            stackMode: "percentage"
-        });
+        const layout = layoutChart(
+            model([
+                { key: "a", values: [1, 1] },
+                { key: "b", values: [10] }
+            ]),
+            {
+                ...OPTIONS,
+                stackMode: "percentage"
+            }
+        );
         expect(layout.bars[0].stackHeight).toBeCloseTo(400, 6);
         expect(layout.bars[1].stackHeight).toBeCloseTo(400, 6);
         expect(layout.bars[0].nodes[0].height).toBeCloseTo(200, 6);
@@ -114,7 +126,14 @@ describe("layoutChart", () => {
 });
 
 describe("barIndexAt", () => {
-    const layout = layoutChart(model([{ key: "a", values: [1] }, { key: "b", values: [1] }, { key: "c", values: [1] }]), OPTIONS);
+    const layout = layoutChart(
+        model([
+            { key: "a", values: [1] },
+            { key: "b", values: [1] },
+            { key: "c", values: [1] }
+        ]),
+        OPTIONS
+    );
 
     it("maps a pointer position to its column", () => {
         expect(barIndexAt(layout, 5, OPTIONS)).toBe(0);

@@ -1,12 +1,12 @@
-import { CSSProperties, ReactElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CSSProperties, ReactElement, RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import classNames from "classnames";
 import { ValueStatus } from "mendix";
 import Big from "big.js";
 
 import { StackedBarChartContainerProps } from "../../typings/StackedBarChartProps";
 import { useChartModel } from "../hooks/useChartModel";
+import { readFlag, readText } from "../hooks/useLazyText";
 import { useElementSize } from "../hooks/useElementSize";
-import { useLazyText } from "../hooks/useLazyText";
 import { BarTarget, ElementTarget, useChartInteractions } from "../hooks/useChartInteractions";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
 import { useVirtualBars } from "../hooks/useVirtualBars";
@@ -22,7 +22,6 @@ import { elementMenuTitle, MenuEntry, MenuPanel, useElementMenuEntries } from ".
 import { EmptyState, LoadingSkeleton } from "./EmptyState";
 import { GridLines } from "./GridLines";
 import { Legend } from "./Legend";
-import { readFlag, readText } from "../hooks/useLazyText";
 import { Tooltip } from "./Tooltip";
 import { ValueAxis } from "./ValueAxis";
 
@@ -34,8 +33,6 @@ export function Chart(props: StackedBarChartContainerProps): ReactElement {
     const viewport = useElementSize(scrollRef);
 
     const model = useChartModel(props);
-    const labelOf = useLazyText(props.labelTemplate, model);
-
 
     const [activeColorKey, setActiveColorKey] = useState<string | null>(null);
     const [menu, setMenu] = useState<OpenMenu | null>(null);
@@ -135,10 +132,7 @@ export function Chart(props: StackedBarChartContainerProps): ReactElement {
         [commitMove, model, props.confirmationMode, props.onDropConfirmRequest]
     );
 
-    const baseLayout = useMemo(
-        () => layoutChart(optimisticModel, layoutOptions),
-        [optimisticModel, layoutOptions]
-    );
+    const baseLayout = useMemo(() => layoutChart(optimisticModel, layoutOptions), [optimisticModel, layoutOptions]);
 
     const canDragElement = useCallback(
         (element: ChartElement) => readFlag(props.draggableExpression, element.item, true),
@@ -240,14 +234,33 @@ export function Chart(props: StackedBarChartContainerProps): ReactElement {
     const menuItem = menu?.kind === "element" ? menu.target.element.item : undefined;
     const elementEntries = useElementMenuEntries(props, menuItem);
 
-    const dimmedColors = useMemo(
-        () => (activeColorKey === null ? null : new Set([activeColorKey])),
-        [activeColorKey]
-    );
+    const dimmedColors = useMemo(() => (activeColorKey === null ? null : new Set([activeColorKey])), [activeColorKey]);
 
     const onLegendHover = useCallback((colorKey: string | null) => setActiveColorKey(colorKey), []);
 
     const enteringKeys = useEnteringKeys(optimisticModel, animate);
+
+    /*
+     * Labels for the elements currently on screen.
+     *
+     * Bounded by the virtual window rather than by the size of the data, and
+     * recomputed only when the layout or the window changes — the template's
+     * own identity is ignored on purpose, because Mendix hands the widget a
+     * fresh accessor object on every render while its output can only change
+     * when the data does.
+     */
+    const visibleLabels = useMemo(() => {
+        const labels = new Map<string, string>();
+        for (let i = range.start; i < range.end && i < layout.bars.length; i++) {
+            for (const node of layout.bars[i].nodes) {
+                labels.set(node.element.key, readText(props.labelTemplate, node.element.item));
+            }
+        }
+        return labels;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [layout, range.start, range.end]);
+
+    const labelOf = useCallback((element: ChartElement) => visibleLabels.get(element.key) ?? "", [visibleLabels]);
 
     // Roving tab index: the chart is a single tab stop, and arrow keys move
     // within it. Without this, a chart with 10,000 elements would be 10,000
@@ -331,9 +344,7 @@ export function Chart(props: StackedBarChartContainerProps): ReactElement {
                                 showLabels={props.showElementLabels === "whenfits"}
                                 showTotal={props.showBarTotals}
                                 showCaption={props.showCategoryAxis}
-                                totalText={
-                                    props.stackMode === "percentage" ? "100%" : valueText(bar.bar.total)
-                                }
+                                totalText={props.stackMode === "percentage" ? "100%" : valueText(bar.bar.total)}
                                 interactive={props.enableElementMenu && props.menuItems.length > 0}
                                 addButton={props.showAddButton}
                                 addEnabled
@@ -452,12 +463,7 @@ function addMenuEntries(props: StackedBarChartContainerProps, target: BarTarget)
 }
 
 /** Finds the element key `barDelta` bars and `elementDelta` positions away. */
-export function neighbourOf(
-    bars: ChartBar[],
-    fromKey: string,
-    barDelta: number,
-    elementDelta: number
-): string | null {
+export function neighbourOf(bars: ChartBar[], fromKey: string, barDelta: number, elementDelta: number): string | null {
     for (let b = 0; b < bars.length; b++) {
         const index = bars[b].elements.findIndex(element => element.key === fromKey);
         if (index === -1) {
@@ -489,7 +495,7 @@ function clampIndex(value: number, length: number): number {
 function useFocusFollow(
     focusedKey: string | null,
     layout: ReturnType<typeof layoutChart>,
-    scrollRef: React.RefObject<HTMLElement>,
+    scrollRef: RefObject<HTMLElement>,
     pitch: number
 ): void {
     useEffect(() => {
@@ -570,37 +576,42 @@ function countMountedNodes(layout: ReturnType<typeof layoutChart>, start: number
  * scrolling, and animating those would make every scroll shimmer.
  */
 function useEnteringKeys(model: ChartModel, enabled: boolean): Set<string> {
-    const previousKeys = useRef<Set<string> | null>(null);
+    const [previous, setPrevious] = useState<{ model: ChartModel | null; keys: Set<string> }>({
+        model: null,
+        keys: new Set()
+    });
 
-    const entering = useMemo(() => {
-        const previous = previousKeys.current;
-        const result = new Set<string>();
-        if (!enabled) {
-            return result;
+    // React's documented way to derive state from a change since the last
+    // render: adjust during render rather than in an effect, so it does not
+    // cost a second pass.
+    if (previous.model !== model) {
+        setPrevious({ model, keys: collectKeys(model) });
+    }
+
+    return useMemo(() => {
+        const entering = new Set<string>();
+        if (!enabled || previous.model === model) {
+            return entering;
         }
         for (const bar of model.bars) {
             for (const element of bar.elements) {
-                if (!previous || !previous.has(element.key)) {
-                    result.add(element.key);
+                if (!previous.keys.has(element.key)) {
+                    entering.add(element.key);
                 }
             }
         }
-        return result;
-    }, [model, enabled]);
+        return entering;
+    }, [model, enabled, previous]);
+}
 
-    // Written in an effect rather than during render, so a double render in
-    // StrictMode does not consume the "new" flag before it is used.
-    useEffect(() => {
-        const keys = new Set<string>();
-        for (const bar of model.bars) {
-            for (const element of bar.elements) {
-                keys.add(element.key);
-            }
+function collectKeys(model: ChartModel): Set<string> {
+    const keys = new Set<string>();
+    for (const bar of model.bars) {
+        for (const element of bar.elements) {
+            keys.add(element.key);
         }
-        previousKeys.current = keys;
-    }, [model]);
-
-    return entering;
+    }
+    return keys;
 }
 
 function ariaSummary(barCount: number, elementCount: number): string {

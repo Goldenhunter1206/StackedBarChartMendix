@@ -68,8 +68,12 @@ export function parseColor(color: string): Rgb | undefined {
 
     const hex = HEX_RE.exec(normalized);
     if (hex) {
-        const value = parseInt(hex[1], 16);
-        return { r: (value >> 16) & 255, g: (value >> 8) & 255, b: value & 255 };
+        const digits = hex[1];
+        return {
+            r: parseInt(digits.slice(0, 2), 16),
+            g: parseInt(digits.slice(2, 4), 16),
+            b: parseInt(digits.slice(4, 6), 16)
+        };
     }
 
     const rgb = RGB_RE.exec(normalized);

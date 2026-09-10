@@ -8,6 +8,12 @@ const base = require("@mendix/pluggable-widgets-tools/test-config/jest.config.js
  */
 module.exports = {
     ...base,
+    moduleNameMapper: {
+        ...base.moduleNameMapper,
+        // The toolchain's own icon mock is untransformed ESM inside
+        // node_modules, which jest will not load.
+        "mendix/components/web/Icon": "<rootDir>/utils/testing/webIconMock.tsx"
+    },
     setupFilesAfterEnv: [...base.setupFilesAfterEnv, "<rootDir>/setupTests.ts"],
     collectCoverage: false
 };

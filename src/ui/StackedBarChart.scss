@@ -267,11 +267,8 @@
      * Position comes from the transform and size from the height, so a reorder
      * is compositor-only and only a value change touches layout.
      */
-    transition:
-        transform var(--sbc-duration) var(--sbc-ease),
-        height var(--sbc-duration) var(--sbc-ease),
-        opacity 160ms linear,
-        filter 140ms linear;
+    transition: transform var(--sbc-duration) var(--sbc-ease), height var(--sbc-duration) var(--sbc-ease),
+        opacity 160ms linear, filter 140ms linear;
 }
 
 .sbc-seg:focus-visible {
@@ -377,10 +374,7 @@
     color: var(--sbc-ink-muted);
     box-shadow: var(--sbc-shadow);
     cursor: pointer;
-    transition:
-        transform var(--sbc-duration) var(--sbc-ease),
-        opacity 140ms linear,
-        color 140ms linear,
+    transition: transform var(--sbc-duration) var(--sbc-ease), opacity 140ms linear, color 140ms linear,
         border-color 140ms linear;
 }
 
@@ -484,9 +478,7 @@
     background: var(--sbc-surface-raised);
     border: 1px solid var(--sbc-border);
     border-radius: 12px;
-    box-shadow:
-        0 1px 2px rgb(15 23 42 / 6%),
-        0 12px 32px -10px rgb(15 23 42 / 28%);
+    box-shadow: 0 1px 2px rgb(15 23 42 / 6%), 0 12px 32px -10px rgb(15 23 42 / 28%);
 
     * {
         box-sizing: border-box;
@@ -503,9 +495,7 @@
         --sbc-border: #334155;
         --sbc-danger: #f87171;
 
-        box-shadow:
-            0 1px 2px rgb(0 0 0 / 40%),
-            0 12px 32px -10px rgb(0 0 0 / 60%);
+        box-shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 12px 32px -10px rgb(0 0 0 / 60%);
     }
 }
 
@@ -718,9 +708,7 @@
     font-weight: 600;
     /* Never a drop target itself. */
     pointer-events: none;
-    box-shadow:
-        0 2px 6px rgb(15 23 42 / 24%),
-        0 16px 32px -12px rgb(15 23 42 / 40%);
+    box-shadow: 0 2px 6px rgb(15 23 42 / 24%), 0 16px 32px -12px rgb(15 23 42 / 40%);
     opacity: 0.94;
 }
 

@@ -50,9 +50,12 @@ export function useChartInteractions(options: InteractionOptions): Interactions 
     const [hover, setHover] = useState<ElementTarget | null>(null);
 
     // Handlers are attached once and read the latest values through a ref, so
-    // changing data never re-attaches listeners.
+    // changing data never re-attaches listeners. Written in an effect rather
+    // than during render: events can only fire after the effect has run.
     const latest = useRef(options);
-    latest.current = options;
+    useEffect(() => {
+        latest.current = options;
+    });
 
     const barsByKey = useMemo(() => {
         const map = new Map<string, LayoutBar>();
@@ -62,7 +65,9 @@ export function useChartInteractions(options: InteractionOptions): Interactions 
         return map;
     }, [layout]);
     const barsRef = useRef(barsByKey);
-    barsRef.current = barsByKey;
+    useEffect(() => {
+        barsRef.current = barsByKey;
+    }, [barsByKey]);
 
     const clearHover = useCallback(() => setHover(null), []);
 
@@ -181,15 +186,12 @@ export function useChartInteractions(options: InteractionOptions): Interactions 
         };
     }, [scrollRef]);
 
-    // A hovered element that scrolled away or was removed must not keep a stale
-    // tooltip anchored to nothing.
-    useEffect(() => {
-        if (hover && !barsByKey.has(hover.bar.key)) {
-            setHover(null);
-        }
-    }, [barsByKey, hover]);
+    // A hovered element whose bar scrolled away or was removed must not keep a
+    // tooltip anchored to nothing. Derived rather than cleared through state,
+    // so it cannot cause an extra render.
+    const liveHover = hover && barsByKey.has(hover.bar.key) ? hover : null;
 
-    return { hover, clearHover };
+    return { hover: liveHover, clearHover };
 }
 
 /** Left/right move between bars; up/down move within the stack. */

@@ -37,8 +37,7 @@ export function Tooltip({ target, config }: TooltipProps): ReactElement {
     const { element, node, bar } = target;
     const item = element.item;
 
-    const title =
-        readText(config.tooltipTitleTemplate, item) || readText(config.labelTemplate, item) || "Element";
+    const title = readText(config.tooltipTitleTemplate, item) || readText(config.labelTemplate, item) || "Element";
 
     const share = bar.total > 0 ? (element.value / bar.total) * 100 : 0;
     const fields = config.tooltipFields
@@ -50,9 +49,7 @@ export function Tooltip({ target, config }: TooltipProps): ReactElement {
         <Popover anchor={target.rect} placement="right" className="sbc-tooltip" role="tooltip">
             <div className="sbc-tooltip-head">
                 <span className="sbc-tooltip-swatch" style={{ background: node.color }} aria-hidden="true" />
-                <span className="sbc-tooltip-title">
-                    {node.count > 1 ? `${node.count} small elements` : title}
-                </span>
+                <span className="sbc-tooltip-title">{node.count > 1 ? `${node.count} small elements` : title}</span>
             </div>
 
             {config.tooltipShowValue || config.tooltipShowPercentage ? (

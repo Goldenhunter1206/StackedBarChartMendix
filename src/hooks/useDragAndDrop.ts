@@ -1,7 +1,15 @@
 import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { barIndexAt, dropIndexAt, LayoutOptions } from "../model/layout";
-import { applyMove, describeMove, DropTarget, findElement, isNoOp, MoveDescription, normalizeDropIndex } from "../model/dragModel";
+import {
+    applyMove,
+    describeMove,
+    DropTarget,
+    findElement,
+    isNoOp,
+    MoveDescription,
+    normalizeDropIndex
+} from "../model/dragModel";
 import { ChartElement, ChartLayout, ChartModel } from "../model/types";
 import { HEADROOM } from "../ui/constants";
 
@@ -55,8 +63,12 @@ export interface DragResult {
  */
 export function useDragAndDrop(options: DragOptions): DragResult {
     const [drag, setDrag] = useState<DragState | null>(null);
+    // Written in an effect, not during render: the listeners below only read it
+    // while handling an event, which is always after the effect has run.
     const latest = useRef(options);
-    latest.current = options;
+    useEffect(() => {
+        latest.current = options;
+    });
 
     const cancel = useCallback(() => setDrag(null), []);
 
@@ -166,17 +178,15 @@ export function useDragAndDrop(options: DragOptions): DragResult {
                 fromLeft < EDGE_SIZE
                     ? -EDGE_SPEED * (1 - Math.max(0, fromLeft) / EDGE_SIZE)
                     : fromRight < EDGE_SIZE
-                      ? EDGE_SPEED * (1 - Math.max(0, fromRight) / EDGE_SIZE)
-                      : 0;
+                    ? EDGE_SPEED * (1 - Math.max(0, fromRight) / EDGE_SIZE)
+                    : 0;
             if (edgeVelocity !== 0 && scrollFrame === 0) {
                 scrollFrame = requestAnimationFrame(runAutoScroll);
             }
 
             const target = resolveTarget(container, event.clientX, event.clientY, activeKey, latest.current);
             setDrag(previous =>
-                previous
-                    ? { ...previous, pointerX: event.clientX, pointerY: event.clientY, target }
-                    : previous
+                previous ? { ...previous, pointerX: event.clientX, pointerY: event.clientY, target } : previous
             );
         };
 
@@ -186,7 +196,8 @@ export function useDragAndDrop(options: DragOptions): DragResult {
             }
             const wasDragging = dragging;
             const key = activeKey;
-            const target = wasDragging && key ? resolveTarget(container, event.clientX, event.clientY, key, latest.current) : null;
+            const target =
+                wasDragging && key ? resolveTarget(container, event.clientX, event.clientY, key, latest.current) : null;
 
             reset();
 
@@ -230,22 +241,23 @@ export function useDragAndDrop(options: DragOptions): DragResult {
         };
     }, [options.scrollRef]);
 
-    const pendingMove = useMemo(
-        () => (drag?.target ? describeMove(options.model, drag.elementKey, drag.target) : null),
-        [drag?.target, drag?.elementKey, options.model]
-    );
+    const { model } = options;
 
-    const previewModel = useMemo(() => {
-        if (!pendingMove || isNoOp(pendingMove)) {
-            return null;
+    const preview = useMemo(() => {
+        const move = drag?.target ? describeMove(model, drag.elementKey, drag.target) : null;
+        if (!move || isNoOp(move)) {
+            return { pendingMove: move, previewModel: null };
         }
-        const moved = applyMove(options.model, pendingMove);
-        // Let the axis grow during a drag but never shrink: a rescale under the
-        // cursor makes every other bar jump while the user is aiming.
-        return { ...moved, maxTotal: Math.max(options.model.maxTotal, moved.maxTotal) };
-    }, [pendingMove, options.model]);
+        const moved = applyMove(model, move);
+        return {
+            pendingMove: move,
+            // The axis may grow during a drag but never shrink: a rescale under
+            // the cursor makes every other bar jump while the user is aiming.
+            previewModel: { ...moved, maxTotal: Math.max(model.maxTotal, moved.maxTotal) }
+        };
+    }, [drag, model]);
 
-    return { drag, previewModel, pendingMove, cancel };
+    return { drag, previewModel: preview.previewModel, pendingMove: preview.pendingMove, cancel };
 }
 
 /** Maps a pointer position to the bar and insertion index under it. */

@@ -50,8 +50,8 @@ export function positionFloating(anchor: Rect, panel: Size, viewport: Size, opti
     const placement = fits(anchor, panel, viewport, options.placement, options)
         ? options.placement
         : fits(anchor, panel, viewport, OPPOSITE[options.placement], options)
-          ? OPPOSITE[options.placement]
-          : options.placement;
+        ? OPPOSITE[options.placement]
+        : options.placement;
 
     const { x, y } = coordsFor(anchor, panel, placement, options.offset);
     return {

@@ -1,11 +1,4 @@
-import {
-    applyMove,
-    describeMove,
-    fractionalSequence,
-    isNoOp,
-    needsRenumber,
-    normalizeDropIndex
-} from "../dragModel";
+import { applyMove, describeMove, fractionalSequence, isNoOp, needsRenumber, normalizeDropIndex } from "../dragModel";
 import { ChartBar, ChartElement, ChartModel } from "../types";
 
 function element(key: string, value = 1): ChartElement {

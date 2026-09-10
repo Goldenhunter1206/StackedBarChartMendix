@@ -25,7 +25,7 @@ export interface CountingAccessor {
 }
 
 export function objectItems(count: number, prefix = "o"): ObjectItem[] {
-    return Array.from({ length: count }, (_, index) => ({ id: `${prefix}${index}` }) as ObjectItem);
+    return Array.from({ length: count }, (_, index) => ({ id: `${prefix}${index}` } as ObjectItem));
 }
 
 export function dynamic<T>(value: T | undefined, status: ValueStatus = ValueStatus.Available): DynamicValue<T> {
@@ -146,7 +146,9 @@ export interface ActionSpy<TArgs = unknown> {
     isExecuting: boolean;
 }
 
-export function actionValue<TArgs = unknown>(overrides: Partial<ActionSpy<TArgs>> = {}): ActionValue & ActionSpy<TArgs> {
+export function actionValue<TArgs = unknown>(
+    overrides: Partial<ActionSpy<TArgs>> = {}
+): ActionValue & ActionSpy<TArgs> {
     return {
         canExecute: true,
         isExecuting: false,

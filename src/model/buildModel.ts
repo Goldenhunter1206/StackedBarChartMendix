@@ -155,7 +155,6 @@ function applyBarIdentity(props: BuildModelProps, barsByKey: Map<string, ChartBa
         }
     }
 
-
     // Any bar still without a caption falls back to the first element's label,
     // then to the raw key.
     for (const bar of barsByKey.values()) {
@@ -287,7 +286,10 @@ export function sortKindFor(type: ListAttributeValue["type"]): SortSpec["kind"] 
  * than by caption, so "Low, Medium, High" sorts in that order instead of
  * alphabetically.
  */
-function normalizeSortValue(attribute: ReadableAttribute & { type: ListAttributeValue["type"]; universe?: unknown }, item: ObjectItem): SortValue {
+function normalizeSortValue(
+    attribute: ReadableAttribute & { type: ListAttributeValue["type"]; universe?: unknown },
+    item: ObjectItem
+): SortValue {
     const value = readAttribute(attribute, item);
     if (value === undefined) {
         return undefined;
