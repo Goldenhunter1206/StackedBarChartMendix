@@ -1,4 +1,4 @@
-import { RefObject, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 export interface Size {
     width: number;
@@ -8,14 +8,18 @@ export interface Size {
 /**
  * Tracks an element's content box.
  *
+ * Takes the element rather than a ref, because a ref object's identity never
+ * changes: an effect keyed on one cannot tell that the element it wanted has
+ * finally mounted. The chart renders a skeleton before its data arrives, so
+ * that is not a corner case, it is the normal path.
+ *
  * Reads come from ResizeObserver rather than from measuring during render, so
  * the chart never forces a synchronous layout while React is committing.
  */
-export function useElementSize(ref: RefObject<Element>): Size {
+export function useElementSize(element: Element | null): Size {
     const [size, setSize] = useState<Size>({ width: 0, height: 0 });
 
     useEffect(() => {
-        const element = ref.current;
         if (!element) {
             return;
         }
@@ -42,7 +46,7 @@ export function useElementSize(ref: RefObject<Element>): Size {
         apply(initial.width, initial.height);
 
         return () => observer.disconnect();
-    }, [ref]);
+    }, [element]);
 
     return size;
 }

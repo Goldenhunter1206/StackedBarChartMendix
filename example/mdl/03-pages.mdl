@@ -6,7 +6,7 @@
  *
  * @since 1.0.0
  */
-CREATE PAGE TimeBooking.Booking_NewEdit
+CREATE OR MODIFY PAGE TimeBooking.Booking_NewEdit
   (
     Title: 'Booking',
     Layout: Atlas_Core.PopupLayout,
@@ -27,8 +27,8 @@ CREATE PAGE TimeBooking.Booking_NewEdit
       )
       TEXTAREA txtComment (Label: 'Comment', Attribute: Comment)
       FOOTER footerBooking {
-        ACTIONBUTTON btnSave (Caption: 'Save', Action: SAVE_CHANGES, ButtonStyle: Primary)
-        ACTIONBUTTON btnCancel (Caption: 'Cancel', Action: CANCEL_CHANGES)
+        ACTIONBUTTON btnSave (Caption: 'Save', Action: SAVE_CHANGES CLOSE_PAGE, ButtonStyle: Primary)
+        ACTIONBUTTON btnCancel (Caption: 'Cancel', Action: CANCEL_CHANGES CLOSE_PAGE)
       }
     }
     } } }
@@ -43,7 +43,7 @@ CREATE PAGE TimeBooking.Booking_NewEdit
  *
  * @since 1.0.0
  */
-CREATE PAGE TimeBooking.ChargingCode_NewEdit
+CREATE OR MODIFY PAGE TimeBooking.ChargingCode_NewEdit
   (
     Title: 'Charging code',
     Layout: Atlas_Core.PopupLayout,
@@ -59,8 +59,8 @@ CREATE PAGE TimeBooking.ChargingCode_NewEdit
       TEXTBOX txtSortOrder (Label: 'Sort order', Attribute: SortOrder)
       CHECKBOX chkActive (Label: 'Active', Attribute: Active)
       FOOTER footerCode {
-        ACTIONBUTTON btnSaveCode (Caption: 'Save', Action: SAVE_CHANGES, ButtonStyle: Primary)
-        ACTIONBUTTON btnCancelCode (Caption: 'Cancel', Action: CANCEL_CHANGES)
+        ACTIONBUTTON btnSaveCode (Caption: 'Save', Action: SAVE_CHANGES CLOSE_PAGE, ButtonStyle: Primary)
+        ACTIONBUTTON btnCancelCode (Caption: 'Cancel', Action: CANCEL_CHANGES CLOSE_PAGE)
       }
     }
     } } }
@@ -73,7 +73,7 @@ CREATE PAGE TimeBooking.ChargingCode_NewEdit
  *
  * @since 1.0.0
  */
-CREATE PAGE TimeBooking.ChargingCode_Overview
+CREATE OR MODIFY PAGE TimeBooking.ChargingCode_Overview
   (
     Title: 'Charging codes',
     Layout: MyFirstModule.App_Default,
@@ -83,7 +83,15 @@ CREATE PAGE TimeBooking.ChargingCode_Overview
   {
     TITLE titleCodes (Content: 'Charging codes')
     DYNAMICTEXT introCodes (Content: 'Each code carries the colour its bookings are drawn in. Change a colour here and the chart follows.')
-    DATAGRID gridCodes (DataSource: DATABASE TimeBooking.ChargingCode) {
+    ACTIONBUTTON btnNewCode (
+      Caption: 'New charging code',
+      Action: CREATE_OBJECT TimeBooking.ChargingCode THEN SHOW_PAGE TimeBooking.ChargingCode_NewEdit,
+      ButtonStyle: Primary
+    )
+    DATAGRID gridCodes (
+      DataSource: DATABASE TimeBooking.ChargingCode,
+      onClick: SHOW_PAGE TimeBooking.ChargingCode_NewEdit($ChargingCode = $currentObject)
+    ) {
       COLUMN colCode (Attribute: Code, Caption: 'Code')
       COLUMN colName (Attribute: Name, Caption: 'Name')
       COLUMN colColour (Attribute: Colour, Caption: 'Colour')

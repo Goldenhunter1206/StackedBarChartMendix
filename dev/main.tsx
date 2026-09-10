@@ -1,4 +1,4 @@
-import { StrictMode, useCallback, useMemo, useState } from "react";
+import { StrictMode, useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ObjectItem } from "mendix";
 
@@ -21,6 +21,18 @@ interface ScenarioSpec {
 function Scenario({ spec, onEvent }: { spec: ScenarioSpec; onEvent: (message: string) => void }): JSX.Element {
     const [tasks, setTasks] = useState(spec.tasks);
     const [version, setVersion] = useState(0);
+
+    /*
+     * Every scenario starts in Loading, because that is what a real Mendix data
+     * source does and the harness previously skipped it — which hid a bug where
+     * the chart rendered but nothing was interactive, since the listeners are
+     * attached to a plot container that does not exist during the skeleton.
+     */
+    const [ready, setReady] = useState(false);
+    useEffect(() => {
+        const timer = window.setTimeout(() => setReady(true), 120);
+        return () => window.clearTimeout(timer);
+    }, []);
 
     const ids = useMemo(() => objectItems(tasks.length).map(item => item.id), [tasks.length]);
     // New array identity per refresh, stable ids inside it.
@@ -47,12 +59,19 @@ function Scenario({ spec, onEvent }: { spec: ScenarioSpec; onEvent: (message: st
         [ids]
     );
 
+    const props = mockProps({ tasks, items, overrides: spec.overrides, onEvent, onMove });
+
     return (
         <section className="panel" data-scenario={spec.id}>
             <h2>{spec.title}</h2>
             <p>{spec.note}</p>
             <StackedBarChart
-                {...mockProps({ tasks, items, overrides: spec.overrides, onEvent, onMove })}
+                {...props}
+                datasource={
+                    ready
+                        ? props.datasource
+                        : ({ ...props.datasource, status: "loading", items: undefined } as typeof props.datasource)
+                }
             />
         </section>
     );

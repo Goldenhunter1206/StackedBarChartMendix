@@ -1,4 +1,4 @@
-import { RefObject, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export interface VirtualRange {
     start: number;
@@ -14,7 +14,7 @@ export interface VirtualRange {
  * browser paints, and re-rendering per event is wasted work.
  */
 export function useVirtualBars(
-    scrollRef: RefObject<HTMLElement>,
+    scrollElement: HTMLElement | null,
     barCount: number,
     pitch: number,
     viewportWidth: number,
@@ -23,7 +23,7 @@ export function useVirtualBars(
     const [scrollLeft, setScrollLeft] = useState(0);
 
     useEffect(() => {
-        const element = scrollRef.current;
+        const element = scrollElement;
         if (!element) {
             return;
         }
@@ -40,7 +40,10 @@ export function useVirtualBars(
         };
 
         element.addEventListener("scroll", onScroll, { passive: true });
-        setScrollLeft(element.scrollLeft);
+        // Pick up a container that mounts already scrolled, through the same
+        // coalescing path as a real scroll rather than setting state straight
+        // from the effect body.
+        onScroll();
 
         return () => {
             element.removeEventListener("scroll", onScroll);
@@ -48,7 +51,7 @@ export function useVirtualBars(
                 cancelAnimationFrame(frame);
             }
         };
-    }, [scrollRef]);
+    }, [scrollElement]);
 
     return useMemo(() => {
         if (barCount === 0 || pitch <= 0 || viewportWidth <= 0) {

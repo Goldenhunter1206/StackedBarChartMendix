@@ -54,3 +54,18 @@ BEGIN
     COMMIT $Booking REFRESH;
   END LOOP;
 END;
+
+/*
+ * Put the refresh button on the charging code page.
+ *
+ * It lives here rather than in 03-pages.mdl because the microflow it calls is
+ * created just above, and 03 runs first.
+ */
+ALTER PAGE TimeBooking.ChargingCode_Overview {
+  INSERT BEFORE gridCodes {
+    ACTIONBUTTON btnRefreshColours (
+      Caption: 'Apply colours to existing bookings',
+      Action: MICROFLOW TimeBooking.ACT_Bookings_RefreshColours
+    )
+  };
+};

@@ -106,6 +106,27 @@ The **commit with refresh matters**. A Mendix action cannot report back to a
 widget, so the refreshed data is the only signal that the move stuck — without
 it the booking animates back when the commit timeout expires.
 
+## If the add button does nothing
+
+Check that **Add action** is still linked on the chart:
+
+```bash
+mxcli describe page TimeBooking.Home_Week -p HoursBooking.mpr | grep onAddElement
+```
+
+Changing the widget definition and re-syncing the widget instance can drop an
+action property, and `mx check` will not complain — an unset *optional* action
+is not an error, so the button simply stops doing anything. Re-running the page
+script puts it back:
+
+```bash
+mxcli exec mdl/04-home.mdl -p HoursBooking.mpr
+```
+
+Worth checking the same way after any widget upgrade. The drop action survives
+more reliably because it is bound to the data source; the add action is not,
+since a bar is a grouping the widget computes rather than a Mendix object.
+
 ## Known rough edge
 
 `labelTemplate`, `tooltipTitleTemplate` and `menuTitleTemplate` are written in
