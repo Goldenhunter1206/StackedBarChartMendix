@@ -1,0 +1,50 @@
+{
+    "name": "stackedbarchart",
+    "widgetName": "StackedBarChart",
+    "version": "1.0.0",
+    "description": "A modern, animated, interactive stacked bar chart for Mendix 10+ with per-element colouring, click-to-edit menus, per-bar add buttons, drag & drop between bars and configurable tooltips.",
+    "copyright": "2026",
+    "author": "",
+    "license": "MIT",
+    "private": true,
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/goldenhunter1206/stackedbarchartmendix.git"
+    },
+    "config": {
+        "projectPath": "./tests/testProject/",
+        "mendixHost": "http://localhost:8080",
+        "developmentPort": 3000
+    },
+    "packagePath": "com.dynamicchart",
+    "scripts": {
+        "start": "pluggable-widgets-tools start:server",
+        "dev": "pluggable-widgets-tools start:web",
+        "build": "pluggable-widgets-tools build:web",
+        "lint": "pluggable-widgets-tools lint",
+        "lint:fix": "pluggable-widgets-tools lint:fix",
+        "test": "jest --config jest.config.js",
+        "release": "pluggable-widgets-tools release:web",
+        "test:watch": "jest --config jest.config.js --watch"
+    },
+    "dependencies": {
+        "classnames": "^2.5.1"
+    },
+    "devDependencies": {
+        "@mendix/pluggable-widgets-tools": "^10.24.1",
+        "@types/big.js": "^6.2.2",
+        "big.js": "^6.2.2"
+    },
+    "overrides": {
+        "react": "18.2.0",
+        "react-dom": "18.2.0",
+        "@types/react": "18.2.0",
+        "@types/react-dom": "18.2.0"
+    },
+    "resolutions": {
+        "react": "18.2.0",
+        "react-dom": "18.2.0",
+        "@types/react": "18.2.0",
+        "@types/react-dom": "18.2.0"
+    }
+}

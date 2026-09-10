@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+*.mpk
+*.log
+.DS_Store
+tests/testProject/
+dev/dist/
+dev/screenshots/
