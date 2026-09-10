@@ -234,6 +234,14 @@ The harness models a Mendix data source honestly — a refresh yields a new item
 array carrying the same object ids — so optimistic drops and animation keying
 behave the way they do in a real app.
 
+## Example app
+
+`example/` holds a small Mendix app built on this widget — booking hours
+against charging codes, with the colours maintained in their own table. The
+MDL scripts there regenerate it from a blank project with
+[mxcli](https://github.com/mendixlabs/mxcli), and the result passes Mendix's
+own consistency check with zero errors. See [example/README.md](example/README.md).
+
 ## Licence
 
 MIT.

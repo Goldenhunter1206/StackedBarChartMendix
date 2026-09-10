@@ -1,0 +1,117 @@
+/**
+ * The booking week.
+ *
+ * One bar per day, one element per booking, coloured by its charging code.
+ *
+ * @since 1.0.0
+ */
+CREATE OR MODIFY PAGE TimeBooking.Home_Week
+  (
+    Title: 'Hours',
+    Layout: MyFirstModule.App_Default,
+    Url: 'hours',
+    Folder: 'Bookings'
+  )
+  {
+    TITLE titleWeek (Content: 'Booked hours')
+    DYNAMICTEXT introWeek (Content: 'Click a booking to edit or delete it, use the plus above a day to add one, and drag a booking to another day.')
+
+    ACTIONBUTTON btnSeed (Caption: 'Load demo data', Action: MICROFLOW TimeBooking.ACT_SeedDemoData)
+    ACTIONBUTTON btnCodes (Caption: 'Charging codes', Action: SHOW_PAGE TimeBooking.ChargingCode_Overview)
+
+    stackedbarchart chartHours (
+      datasource: database from TimeBooking.Booking sort by BookingDate asc,
+      barKeyAttribute: DayKey,
+      valueAttribute: Hours,
+      labelTemplate: '{CodeShort}',
+
+      -- Colour comes from the charging code table. A before-commit handler
+      -- copies it onto the booking, so the chart binds a plain attribute and
+      -- the code table stays the single place a colour is defined.
+      colorMode: 'attribute',
+      colorAttribute: Colour,
+      seriesAttribute: CodeName,
+
+      colorOrderMode: 'appearance',
+      barSortMode: 'datasource',
+      barSortDirection: 'asc',
+
+      heightMode: 'fixed',
+      heightValue: 460,
+      barWidth: 84,
+      barGap: 28,
+      segmentGap: 2,
+      cornerRadius: 6,
+      stackMode: 'absolute',
+      showValueAxis: true,
+      valueAxisTitle: 'Hours',
+      showGridLines: true,
+      showCategoryAxis: true,
+      showBarTotals: true,
+      showElementLabels: 'whenfits',
+      showLegend: true,
+      emptyMessage: 'No hours booked yet. Use "Load demo data" to get started.',
+
+      tooltipMode: 'fields',
+      tooltipTitleTemplate: '{CodeName}',
+      tooltipShowValue: true,
+      tooltipShowPercentage: true,
+      tooltipShowDelay: 80,
+      tooltipHideDelay: 120,
+
+      enableElementMenu: true,
+      menuTitleTemplate: '{CodeName}',
+
+      showAddButton: 'hover',
+      addButtonTooltip: 'Book hours on this day',
+      addMode: 'single',
+      onAddElement: microflow TimeBooking.ACT_Booking_AddToDay(
+        barKey: $barKey,
+        barIndex: $barIndex,
+        insertIndex: $insertIndex,
+        barTotal: $barTotal
+      ),
+
+      enableDragDrop: true,
+      allowReorderWithinBar: false,
+      allowMoveAcrossBars: true,
+      sequenceAttribute: Sequence,
+      -- The action variables the widget supplies are mapped by name onto the
+      -- microflow's parameters.
+      onDrop: microflow TimeBooking.ACT_Booking_Moved(
+        sourceBarKey: $sourceBarKey,
+        targetBarKey: $targetBarKey,
+        sourceIndex: $sourceIndex,
+        targetIndex: $targetIndex,
+        previousElementGuid: $previousElementGuid,
+        nextElementGuid: $nextElementGuid
+      ),
+      dropCommitTimeout: 8000,
+      confirmationMode: 'dialog',
+      confirmTitle: 'Move booking',
+      confirmMessage: 'Move this booking to the selected day?',
+      confirmOkCaption: 'Move',
+      confirmCancelCaption: 'Cancel',
+
+      enableAnimations: true,
+      animationDuration: 320,
+      animationDisableThreshold: 1500,
+      virtualizationOverscan: 3,
+      sliverClustering: false,
+      sliverThreshold: 2
+    ) {
+      -- Colour first, so bookings on the same code sit together; the widget's
+      -- own sequence breaks ties, which is what makes a drop land where it was
+      -- dropped among same-coloured bookings.
+      sortkey skColour (sortSource: 'color', sortDirection: 'asc')
+      sortkey skSequence (sortSource: 'attribute', sortAttribute: Sequence, sortDirection: 'asc')
+
+      tooltipfield tfDuration (fieldCaption: 'Duration', fieldValue: '{Hours} h')
+      tooltipfield tfDate (fieldCaption: 'Date', fieldValue: '{BookingDate}')
+      tooltipfield tfCode (fieldCaption: 'Charging code', fieldValue: '{CodeShort} — {CodeName}')
+      tooltipfield tfComment (fieldCaption: 'Comment', fieldValue: '{Comment}', fieldVisible: '$currentObject/Comment != empty')
+
+      menuitem miEdit (itemCaption: 'Edit booking', itemAction: microflow TimeBooking.ACT_Booking_Edit, itemStyle: 'primary')
+      menuitem miDelete (itemCaption: 'Delete booking', itemAction: microflow TimeBooking.ACT_Booking_Delete, itemStyle: 'destructive')
+    }
+  };

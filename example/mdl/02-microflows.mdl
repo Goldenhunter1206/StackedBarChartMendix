@@ -1,0 +1,166 @@
+-- MARK: DEMO DATA
+
+/**
+ * Creates the charging codes and a week of bookings, once.
+ *
+ * The colours are a green family in the spirit of Schaeffler's branding, and
+ * they live on the ChargingCode rows rather than in the widget — recolouring a
+ * code recolours every booking charged to it.
+ *
+ * @since 1.0.0
+ */
+CREATE MICROFLOW TimeBooking.ACT_SeedDemoData ()
+FOLDER 'Demo data'
+BEGIN
+  RETRIEVE $Existing FROM TimeBooking.ChargingCode LIMIT 1;
+  IF $Existing != empty THEN
+    RETURN;
+  END IF;
+
+  $Project = CREATE TimeBooking.ChargingCode (
+    Code = 'PRJ', Name = 'Project work', Colour = '#00893D', SortOrder = 1, Active = true
+  ) COMMIT;
+  $Maintenance = CREATE TimeBooking.ChargingCode (
+    Code = 'MTN', Name = 'Maintenance', Colour = '#6CB33F', SortOrder = 2, Active = true
+  ) COMMIT;
+  $Quality = CREATE TimeBooking.ChargingCode (
+    Code = 'QLT', Name = 'Quality assurance', Colour = '#00693C', SortOrder = 3, Active = true
+  ) COMMIT;
+  $Training = CREATE TimeBooking.ChargingCode (
+    Code = 'TRN', Name = 'Training', Colour = '#A6CE39', SortOrder = 4, Active = true
+  ) COMMIT;
+  $Meetings = CREATE TimeBooking.ChargingCode (
+    Code = 'MTG', Name = 'Meetings', Colour = '#007A53', SortOrder = 5, Active = true
+  ) COMMIT;
+
+  DECLARE $Monday DateTime = addDays([%BeginOfCurrentDay%], -1 * (dayOfWeek([%CurrentDateTime%]) - 1));
+  DECLARE $Day Integer = 0;
+
+  WHILE $Day < 5 BEGIN
+    DECLARE $Date DateTime = addDays($Monday, $Day);
+    DECLARE $Key String = formatDateTime($Date, 'EEE dd MMM');
+
+    $B1 = CREATE TimeBooking.Booking (
+      DayKey = $Key, BookingDate = $Date, Hours = 3.5, Sequence = 100,
+      Comment = 'Sprint work'
+    );
+    CHANGE $B1 (TimeBooking.Booking_ChargingCode = $Project) COMMIT;
+
+    $B2 = CREATE TimeBooking.Booking (
+      DayKey = $Key, BookingDate = $Date, Hours = 1.5, Sequence = 200
+    );
+    CHANGE $B2 (TimeBooking.Booking_ChargingCode = $Meetings) COMMIT;
+
+    $B3 = CREATE TimeBooking.Booking (
+      DayKey = $Key, BookingDate = $Date, Hours = 2, Sequence = 300,
+      Comment = 'Line 4 preventive check'
+    );
+    CHANGE $B3 (TimeBooking.Booking_ChargingCode = $Maintenance) COMMIT;
+
+    IF $Day < 3 THEN
+      $B4 = CREATE TimeBooking.Booking (
+        DayKey = $Key, BookingDate = $Date, Hours = 1, Sequence = 400
+      );
+      CHANGE $B4 (TimeBooking.Booking_ChargingCode = $Quality) COMMIT;
+    END IF;
+
+    IF $Day = 2 THEN
+      $B5 = CREATE TimeBooking.Booking (
+        DayKey = $Key, BookingDate = $Date, Hours = 2, Sequence = 500,
+        Comment = 'Safety refresher'
+      );
+      CHANGE $B5 (TimeBooking.Booking_ChargingCode = $Training) COMMIT;
+    END IF;
+
+    $Day = $Day + 1;
+  END WHILE;
+END;
+
+-- MARK: CHART ACTIONS
+
+/**
+ * Adds a booking to the bar whose plus button was clicked.
+ *
+ * A bar is a grouping the widget computes, not a Mendix object, so the bar's
+ * context arrives as action variables. $barKey is the DayKey of that bar and
+ * $insertIndex is the position on top of the stack.
+ *
+ * @since 1.0.0
+ */
+CREATE MICROFLOW TimeBooking.ACT_Booking_AddToDay (
+  $barKey: String,
+  $barIndex: Integer,
+  $insertIndex: Integer,
+  $barTotal: Decimal
+)
+FOLDER 'Chart actions'
+BEGIN
+  RETRIEVE $Sample FROM TimeBooking.Booking
+    WHERE DayKey = $barKey
+    SORT BY Sequence DESC
+    LIMIT 1;
+
+  $Booking = CREATE TimeBooking.Booking (
+    DayKey = $barKey,
+    BookingDate = if $Sample != empty then $Sample/BookingDate else [%BeginOfCurrentDay%],
+    Hours = 1,
+    Sequence = if $Sample != empty then $Sample/Sequence + 100 else 100
+  );
+
+  SHOW PAGE TimeBooking.Booking_NewEdit ($Booking = $Booking);
+END;
+
+/**
+ * Opens a booking for editing. Wired to the element menu, which passes the
+ * clicked booking as the parameter.
+ *
+ * @since 1.0.0
+ */
+CREATE MICROFLOW TimeBooking.ACT_Booking_Edit ($Booking: TimeBooking.Booking)
+FOLDER 'Chart actions'
+BEGIN
+  SHOW PAGE TimeBooking.Booking_NewEdit ($Booking = $Booking);
+END;
+
+/**
+ * Deletes a booking from the element menu.
+ *
+ * @since 1.0.0
+ */
+CREATE MICROFLOW TimeBooking.ACT_Booking_Delete ($Booking: TimeBooking.Booking)
+FOLDER 'Chart actions'
+BEGIN
+  DELETE $Booking REFRESH;
+END;
+
+/**
+ * Handles a booking dragged to another day.
+ *
+ * The widget has already written Sequence itself, using a fractional index
+ * between the two neighbours, so all this has to do is move the booking to the
+ * target day and commit. The commit is what matters: an action cannot report
+ * back to the widget, so the refreshed data is the only signal that the move
+ * stuck — without it the element animates back after the commit timeout.
+ *
+ * @since 1.0.0
+ */
+CREATE MICROFLOW TimeBooking.ACT_Booking_Moved (
+  $Booking: TimeBooking.Booking,
+  $sourceBarKey: String,
+  $targetBarKey: String,
+  $sourceIndex: Integer,
+  $targetIndex: Integer,
+  $previousElementGuid: String,
+  $nextElementGuid: String
+)
+FOLDER 'Chart actions'
+BEGIN
+  RETRIEVE $TargetDay FROM TimeBooking.Booking
+    WHERE DayKey = $targetBarKey
+    LIMIT 1;
+
+  CHANGE $Booking (
+    DayKey = $targetBarKey,
+    BookingDate = if $TargetDay != empty then $TargetDay/BookingDate else $Booking/BookingDate
+  ) COMMIT REFRESH;
+END;

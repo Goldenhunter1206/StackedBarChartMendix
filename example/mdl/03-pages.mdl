@@ -1,0 +1,93 @@
+/**
+ * Edit one booking.
+ *
+ * Opened from the chart's element menu with the clicked booking, and from the
+ * add button with a fresh one — the same page serves both.
+ *
+ * @since 1.0.0
+ */
+CREATE PAGE TimeBooking.Booking_NewEdit
+  (
+    Title: 'Booking',
+    Layout: Atlas_Core.PopupLayout,
+    Params: { $Booking: TimeBooking.Booking },
+    Folder: 'Bookings'
+  )
+  {
+    LAYOUTGRID lgBooking { ROW rowBooking { COLUMN colBooking (DesktopWidth: 12) {
+    DATAVIEW dvBooking (DataSource: $Booking) {
+      DATEPICKER dpDate (Label: 'Date', Attribute: BookingDate)
+      TEXTBOX txtHours (Label: 'Hours', Attribute: Hours)
+      COMBOBOX cbCode (
+        Label: 'Charging code',
+        datasource: database TimeBooking.ChargingCode,
+        optionsSourceType: 'association',
+        Association: TimeBooking.Booking_ChargingCode,
+        optionsSourceAssociationCaptionAttribute: Name
+      )
+      TEXTAREA txtComment (Label: 'Comment', Attribute: Comment)
+      FOOTER footerBooking {
+        ACTIONBUTTON btnSave (Caption: 'Save', Action: SAVE_CHANGES, ButtonStyle: Primary)
+        ACTIONBUTTON btnCancel (Caption: 'Cancel', Action: CANCEL_CHANGES)
+      }
+    }
+    } } }
+  };
+
+/**
+ * Edit one charging code.
+ *
+ * Colour is a plain text field holding a CSS colour. The chart reads it over
+ * the booking's reference, so changing it here recolours every booking charged
+ * to this code.
+ *
+ * @since 1.0.0
+ */
+CREATE PAGE TimeBooking.ChargingCode_NewEdit
+  (
+    Title: 'Charging code',
+    Layout: Atlas_Core.PopupLayout,
+    Params: { $ChargingCode: TimeBooking.ChargingCode },
+    Folder: 'Charging codes'
+  )
+  {
+    LAYOUTGRID lgCode { ROW rowCode { COLUMN colCodeCell (DesktopWidth: 12) {
+    DATAVIEW dvCode (DataSource: $ChargingCode) {
+      TEXTBOX txtCode (Label: 'Code', Attribute: Code)
+      TEXTBOX txtName (Label: 'Name', Attribute: Name)
+      TEXTBOX txtColour (Label: 'Colour (CSS)', Attribute: Colour)
+      TEXTBOX txtSortOrder (Label: 'Sort order', Attribute: SortOrder)
+      CHECKBOX chkActive (Label: 'Active', Attribute: Active)
+      FOOTER footerCode {
+        ACTIONBUTTON btnSaveCode (Caption: 'Save', Action: SAVE_CHANGES, ButtonStyle: Primary)
+        ACTIONBUTTON btnCancelCode (Caption: 'Cancel', Action: CANCEL_CHANGES)
+      }
+    }
+    } } }
+  };
+
+/**
+ * The charging code table.
+ *
+ * This is the "extra table" that drives the chart's colours.
+ *
+ * @since 1.0.0
+ */
+CREATE PAGE TimeBooking.ChargingCode_Overview
+  (
+    Title: 'Charging codes',
+    Layout: MyFirstModule.App_Default,
+    Url: 'charging-codes',
+    Folder: 'Charging codes'
+  )
+  {
+    TITLE titleCodes (Content: 'Charging codes')
+    DYNAMICTEXT introCodes (Content: 'Each code carries the colour its bookings are drawn in. Change a colour here and the chart follows.')
+    DATAGRID gridCodes (DataSource: DATABASE TimeBooking.ChargingCode) {
+      COLUMN colCode (Attribute: Code, Caption: 'Code')
+      COLUMN colName (Attribute: Name, Caption: 'Name')
+      COLUMN colColour (Attribute: Colour, Caption: 'Colour')
+      COLUMN colOrder (Attribute: SortOrder, Caption: 'Order')
+      COLUMN colActive (Attribute: Active, Caption: 'Active')
+    }
+  };

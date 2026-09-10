@@ -1,0 +1,9 @@
+/**
+ * The chart is the app's home page.
+ */
+CREATE OR REPLACE NAVIGATION Responsive
+  HOME PAGE TimeBooking.Home_Week
+  MENU (
+    MENU ITEM 'Hours' PAGE TimeBooking.Home_Week ICON Atlas_Core.Atlas."notes-checklist";
+    MENU ITEM 'Charging codes' PAGE TimeBooking.ChargingCode_Overview ICON Atlas_Core.Atlas.tag;
+  );

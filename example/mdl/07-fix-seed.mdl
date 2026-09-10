@@ -1,0 +1,74 @@
+/**
+ * Seeds the charging codes and a few days of bookings, once.
+ *
+ * Days run from today rather than from a computed Monday: Mendix has no
+ * dayOfWeek function, and a demo does not need the week to start on Monday.
+ *
+ * @since 1.0.0
+ */
+CREATE OR MODIFY MICROFLOW TimeBooking.ACT_SeedDemoData ()
+FOLDER 'Demo data'
+BEGIN
+  RETRIEVE $Existing FROM TimeBooking.ChargingCode LIMIT 1;
+  IF $Existing != empty THEN
+    RETURN;
+  END IF;
+
+  $Project = CREATE TimeBooking.ChargingCode (
+    Code = 'PRJ', Name = 'Project work', Colour = '#00893D', SortOrder = 1, Active = true
+  ) COMMIT;
+  $Maintenance = CREATE TimeBooking.ChargingCode (
+    Code = 'MTN', Name = 'Maintenance', Colour = '#6CB33F', SortOrder = 2, Active = true
+  ) COMMIT;
+  $Quality = CREATE TimeBooking.ChargingCode (
+    Code = 'QLT', Name = 'Quality assurance', Colour = '#00693C', SortOrder = 3, Active = true
+  ) COMMIT;
+  $Training = CREATE TimeBooking.ChargingCode (
+    Code = 'TRN', Name = 'Training', Colour = '#A6CE39', SortOrder = 4, Active = true
+  ) COMMIT;
+  $Meetings = CREATE TimeBooking.ChargingCode (
+    Code = 'MTG', Name = 'Meetings', Colour = '#007A53', SortOrder = 5, Active = true
+  ) COMMIT;
+
+  DECLARE $Start DateTime = [%BeginOfCurrentDay%];
+  DECLARE $Day Integer = 0;
+
+  WHILE $Day < 5 BEGIN
+    DECLARE $Date DateTime = addDays($Start, $Day);
+    DECLARE $Key String = formatDateTime($Date, 'EEE dd MMM');
+
+    $B1 = CREATE TimeBooking.Booking (
+      DayKey = $Key, BookingDate = $Date, Hours = 3.5, Sequence = 100,
+      Comment = 'Sprint work'
+    );
+    CHANGE $B1 (TimeBooking.Booking_ChargingCode = $Project) COMMIT;
+
+    $B2 = CREATE TimeBooking.Booking (
+      DayKey = $Key, BookingDate = $Date, Hours = 1.5, Sequence = 200
+    );
+    CHANGE $B2 (TimeBooking.Booking_ChargingCode = $Meetings) COMMIT;
+
+    $B3 = CREATE TimeBooking.Booking (
+      DayKey = $Key, BookingDate = $Date, Hours = 2, Sequence = 300,
+      Comment = 'Line 4 preventive check'
+    );
+    CHANGE $B3 (TimeBooking.Booking_ChargingCode = $Maintenance) COMMIT;
+
+    IF $Day < 3 THEN
+      $B4 = CREATE TimeBooking.Booking (
+        DayKey = $Key, BookingDate = $Date, Hours = 1, Sequence = 400
+      );
+      CHANGE $B4 (TimeBooking.Booking_ChargingCode = $Quality) COMMIT;
+    END IF;
+
+    IF $Day = 2 THEN
+      $B5 = CREATE TimeBooking.Booking (
+        DayKey = $Key, BookingDate = $Date, Hours = 2, Sequence = 500,
+        Comment = 'Safety refresher'
+      );
+      CHANGE $B5 (TimeBooking.Booking_ChargingCode = $Training) COMMIT;
+    END IF;
+
+    $Day = $Day + 1;
+  END WHILE;
+END;

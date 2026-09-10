@@ -1,0 +1,76 @@
+-- MARK: MODULE
+
+/**
+ * Hours booking against charging codes.
+ *
+ * A small example app for the Stacked Bar Chart pluggable widget: people book
+ * hours on a day, each booking is charged to a code, and the code decides the
+ * colour the booking gets in the chart.
+ *
+ * @since 1.0.0
+ */
+create module TimeBooking;
+
+-- MARK: CORE ENTITIES
+
+/**
+ * A charging code that hours can be booked against.
+ *
+ * This is the "extra table" the chart colours come from: Colour holds a CSS
+ * colour, and the widget reads it over the Booking_ChargingCode reference, so
+ * re-colouring a code re-colours every booking charged to it.
+ *
+ * @since 1.0.0
+ */
+create persistent entity TimeBooking.ChargingCode (
+  /** Short code shown on the element and in the legend, e.g. PRJ */
+  Code: string(20) not null error 'A charging code needs a code',
+  /** Human readable name, e.g. Project work */
+  Name: string(100) not null error 'A charging code needs a name',
+  /** CSS colour used to draw every booking charged to this code */
+  Colour: string(30) not null error 'A charging code needs a colour',
+  /** Order the codes appear in, in pickers and in the legend */
+  SortOrder: integer,
+  /** Retired codes stay for history but cannot be booked against */
+  Active: boolean not null default true
+);
+
+/**
+ * Hours booked on one day against one charging code.
+ *
+ * One Booking is one element in the chart. Bookings sharing a DayKey stack
+ * into the same bar.
+ *
+ * @since 1.0.0
+ */
+create persistent entity TimeBooking.Booking (
+  /** Groups bookings into bars. Also the bar caption, so it is human readable. */
+  DayKey: string(20) not null error 'A booking needs a day',
+  /** The day itself, kept alongside DayKey for sorting and for the tooltip */
+  BookingDate: date not null error 'A booking needs a date',
+  /** Duration in hours; this is the height of the element */
+  Hours: decimal not null error 'A booking needs a duration',
+  /** Optional note, shown in the tooltip when present */
+  Comment: string(500),
+  /**
+   * Position within the day.
+   *
+   * The widget writes this itself on a drag, using a fractional index, and the
+   * chart sorts by it — which is what makes a reorder survive a refresh.
+   */
+  Sequence: decimal
+);
+
+-- MARK: ASSOCIATIONS
+
+/**
+ * The code a booking is charged to.
+ *
+ * The booking holds the reference, so the chart can read Colour, Code and Name
+ * straight off it for the element's colour, legend entry and tooltip.
+ *
+ * @since 1.0.0
+ */
+create association TimeBooking.Booking_ChargingCode
+from TimeBooking.Booking to TimeBooking.ChargingCode
+type reference;
