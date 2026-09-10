@@ -1,0 +1,56 @@
+-- MARK: DENORMALISED DISPLAY FIELDS
+
+/**
+ * Display fields copied from the booking's charging code.
+ *
+ * The charging code table stays the source of truth; these are a cache kept in
+ * step by a before-commit handler, so the chart can bind them as plain
+ * attributes.
+ *
+ * @since 1.0.0
+ */
+ALTER ENTITY TimeBooking.Booking ADD ATTRIBUTE IF NOT EXISTS Colour: string(30);
+ALTER ENTITY TimeBooking.Booking ADD ATTRIBUTE IF NOT EXISTS CodeShort: string(20);
+ALTER ENTITY TimeBooking.Booking ADD ATTRIBUTE IF NOT EXISTS CodeName: string(100);
+
+/**
+ * Copies colour, code and name off the charging code before every commit.
+ *
+ * @since 1.0.0
+ */
+CREATE MICROFLOW TimeBooking.BCo_Booking_ApplyCode ($Booking: TimeBooking.Booking)
+RETURNS Boolean AS $Ok
+FOLDER 'Chart actions'
+BEGIN
+  RETRIEVE $Code FROM $Booking/TimeBooking.Booking_ChargingCode;
+  IF $Code != empty THEN
+    CHANGE $Booking (
+      Colour = $Code/Colour,
+      CodeShort = $Code/Code,
+      CodeName = $Code/Name
+    );
+  ELSE
+    CHANGE $Booking (Colour = '#94a3b8', CodeShort = '?', CodeName = 'Unassigned');
+  END IF;
+  RETURN true;
+END;
+
+ALTER ENTITY TimeBooking.Booking
+  ADD EVENT HANDLER ON BEFORE COMMIT CALL TimeBooking.BCo_Booking_ApplyCode($Booking);
+
+/**
+ * Re-applies charging code colours to every booking.
+ *
+ * Run this after changing a colour in the charging code table: the cached
+ * fields on existing bookings are only refreshed when a booking is committed.
+ *
+ * @since 1.0.0
+ */
+CREATE MICROFLOW TimeBooking.ACT_Bookings_RefreshColours ()
+FOLDER 'Charging codes'
+BEGIN
+  RETRIEVE $Bookings FROM TimeBooking.Booking;
+  LOOP $Booking IN $Bookings BEGIN
+    COMMIT $Booking REFRESH;
+  END LOOP;
+END;

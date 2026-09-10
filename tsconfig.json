@@ -1,0 +1,10 @@
+{
+    "extends": "./node_modules/@mendix/pluggable-widgets-tools/configs/tsconfig.base.json",
+    "compilerOptions": {
+        "baseUrl": "./",
+        "paths": {
+            "react-hot-loader/root": ["./node_modules/@mendix/pluggable-widgets-tools/configs/hot-typescript.ts"]
+        }
+    },
+    "include": ["./src", "./typings"]
+}

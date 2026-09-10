@@ -1,0 +1,605 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<widget id="com.dynamicchart.stackedbarchart.StackedBarChart" pluginWidget="true" offlineCapable="true" xmlns="http://www.mendix.com/widget/1.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mendix.com/widget/1.0/ ../node_modules/mendix/custom_widget.xsd">
+    <name>Stacked Bar Chart</name>
+    <description>A modern, animated stacked bar chart with per-element colouring, click-to-edit menus, per-bar add buttons, drag and drop between bars and configurable tooltips.</description>
+    <properties>
+
+        <propertyGroup caption="Data source">
+            <propertyGroup caption="Elements">
+                <property key="datasource" type="datasource" isList="true" required="true">
+                    <caption>Elements</caption>
+                    <description>The list of objects rendered as stacked elements. Each object becomes exactly one element; objects are never merged.</description>
+                </property>
+                <property key="barKeyAttribute" type="attribute" dataSource="datasource" required="true">
+                    <caption>Bar key</caption>
+                    <description>Elements sharing the same value of this attribute are stacked into the same bar.</description>
+                    <attributeTypes>
+                        <attributeType name="String" />
+                        <attributeType name="Enum" />
+                        <attributeType name="Integer" />
+                        <attributeType name="Long" />
+                        <attributeType name="Decimal" />
+                        <attributeType name="DateTime" />
+                        <attributeType name="Boolean" />
+                    </attributeTypes>
+                    <associationTypes>
+                        <associationType name="Reference" />
+                    </associationTypes>
+                </property>
+                <property key="valueAttribute" type="attribute" dataSource="datasource" required="true">
+                    <caption>Value</caption>
+                    <description>The magnitude of the element. Negative values are treated as zero.</description>
+                    <attributeTypes>
+                        <attributeType name="Decimal" />
+                        <attributeType name="Integer" />
+                        <attributeType name="Long" />
+                    </attributeTypes>
+                </property>
+                <property key="labelTemplate" type="textTemplate" dataSource="datasource" required="false">
+                    <caption>Element label</caption>
+                    <description>Shown inside the element when it fits, and as the tooltip / menu title.</description>
+                </property>
+                <property key="identityAttribute" type="attribute" dataSource="datasource" required="false">
+                    <caption>Identity attribute</caption>
+                    <description>Optional. A stable business key used to track elements across refreshes. Only needed when the data source is a microflow that returns freshly created objects each time, because their internal ids change on every refresh and animations would otherwise restart.</description>
+                    <attributeTypes>
+                        <attributeType name="String" />
+                        <attributeType name="Integer" />
+                        <attributeType name="Long" />
+                        <attributeType name="AutoNumber" />
+                    </attributeTypes>
+                    <associationTypes>
+                        <associationType name="Reference" />
+                    </associationTypes>
+                </property>
+                <property key="maxItems" type="integer" defaultValue="0">
+                    <caption>Maximum elements</caption>
+                    <description>Caps how many elements are retrieved from the server. 0 retrieves everything. When the data is capped the chart shows a "showing X of Y" notice instead of silently truncating.</description>
+                </property>
+            </propertyGroup>
+            <propertyGroup caption="Bars (optional)">
+                <property key="barsDatasource" type="datasource" isList="true" required="false">
+                    <caption>Bars</caption>
+                    <description>Optional. Supply the bars as their own list to show bars that have no elements, control bar order explicitly, and give the add button and drop target a real Mendix object as context.</description>
+                </property>
+                <property key="barsKeyAttribute" type="attribute" dataSource="barsDatasource" required="false">
+                    <caption>Bar key</caption>
+                    <description>Joined against the element's bar key.</description>
+                    <attributeTypes>
+                        <attributeType name="String" />
+                        <attributeType name="Enum" />
+                        <attributeType name="Integer" />
+                        <attributeType name="Long" />
+                        <attributeType name="Decimal" />
+                        <attributeType name="DateTime" />
+                        <attributeType name="Boolean" />
+                    </attributeTypes>
+                </property>
+                <property key="barsLabelTemplate" type="textTemplate" dataSource="barsDatasource" required="false">
+                    <caption>Bar caption</caption>
+                    <description>Label shown under the bar. Defaults to the bar key.</description>
+                </property>
+                <property key="showEmptyBars" type="boolean" defaultValue="true">
+                    <caption>Show empty bars</caption>
+                    <description>Render bars from the bars list that currently hold no elements.</description>
+                </property>
+            </propertyGroup>
+        </propertyGroup>
+
+        <propertyGroup caption="Colours">
+            <propertyGroup caption="Colours">
+                <property key="colorMode" type="enumeration" defaultValue="expression">
+                    <caption>Colour source</caption>
+                    <description>How the rendered colour of each element is determined.</description>
+                    <enumerationValues>
+                        <enumerationValue key="expression">Expression</enumerationValue>
+                        <enumerationValue key="attribute">Attribute</enumerationValue>
+                        <enumerationValue key="palette">Automatic palette by attribute</enumerationValue>
+                    </enumerationValues>
+                </property>
+                <property key="colorExpression" type="expression" dataSource="datasource" required="false">
+                    <caption>Colour</caption>
+                    <description>Any CSS colour, for example '#22c55e' or 'rgb(34 197 94)'.</description>
+                    <returnType type="String" />
+                </property>
+                <property key="colorAttribute" type="attribute" dataSource="datasource" required="false">
+                    <caption>Colour attribute</caption>
+                    <description>Attribute holding a CSS colour string.</description>
+                    <attributeTypes>
+                        <attributeType name="String" />
+                        <attributeType name="Enum" />
+                    </attributeTypes>
+                    <associationTypes>
+                        <associationType name="Reference" />
+                    </associationTypes>
+                </property>
+                <property key="seriesAttribute" type="attribute" dataSource="datasource" required="false">
+                    <caption>Series attribute</caption>
+                    <description>Names the series an element belongs to. Used to label the legend, and — in automatic palette mode — to assign each distinct value its own colour.</description>
+                    <attributeTypes>
+                        <attributeType name="String" />
+                        <attributeType name="Enum" />
+                        <attributeType name="Boolean" />
+                        <attributeType name="Integer" />
+                        <attributeType name="Long" />
+                    </attributeTypes>
+                    <associationTypes>
+                        <associationType name="Reference" />
+                    </associationTypes>
+                </property>
+                <property key="palette" type="enumeration" defaultValue="vivid">
+                    <caption>Palette</caption>
+                    <description>Used for automatic palette colouring, and as the fallback when a colour cannot be resolved.</description>
+                    <enumerationValues>
+                        <enumerationValue key="vivid">Vivid</enumerationValue>
+                        <enumerationValue key="pastel">Pastel</enumerationValue>
+                        <enumerationValue key="cool">Cool</enumerationValue>
+                        <enumerationValue key="warm">Warm</enumerationValue>
+                        <enumerationValue key="custom">Custom</enumerationValue>
+                    </enumerationValues>
+                </property>
+                <property key="customPalette" type="string" required="false" defaultValue="#6366f1,#22c55e,#f59e0b,#ef4444,#06b6d4,#a855f7,#84cc16,#ec4899">
+                    <caption>Custom palette</caption>
+                    <description>Comma separated list of CSS colours.</description>
+                </property>
+            </propertyGroup>
+        </propertyGroup>
+
+        <propertyGroup caption="Sorting">
+            <propertyGroup caption="Element order within a bar">
+                <property key="sortKeys" type="object" isList="true" required="false">
+                    <caption>Sort keys</caption>
+                    <description>Elements are ordered within each bar by these keys, in order. Leave empty to sort by colour only.</description>
+                    <properties>
+                        <propertyGroup caption="Sort key">
+                            <property key="sortSource" type="enumeration" defaultValue="color">
+                                <caption>Sort by</caption>
+                                <description />
+                                <enumerationValues>
+                                    <enumerationValue key="color">Colour</enumerationValue>
+                                    <enumerationValue key="attribute">Attribute</enumerationValue>
+                                </enumerationValues>
+                            </property>
+                            <property key="sortAttribute" type="attribute" dataSource="../datasource" required="false">
+                                <caption>Attribute</caption>
+                                <description>Any attribute of the element, including fields added purely for ordering.</description>
+                                <attributeTypes>
+                                    <attributeType name="String" />
+                                    <attributeType name="Enum" />
+                                    <attributeType name="Boolean" />
+                                    <attributeType name="Integer" />
+                                    <attributeType name="Long" />
+                                    <attributeType name="Decimal" />
+                                    <attributeType name="DateTime" />
+                                </attributeTypes>
+                                <associationTypes>
+                                    <associationType name="Reference" />
+                                </associationTypes>
+                            </property>
+                            <property key="sortDirection" type="enumeration" defaultValue="asc">
+                                <caption>Direction</caption>
+                                <description />
+                                <enumerationValues>
+                                    <enumerationValue key="asc">Ascending</enumerationValue>
+                                    <enumerationValue key="desc">Descending</enumerationValue>
+                                </enumerationValues>
+                            </property>
+                        </propertyGroup>
+                    </properties>
+                </property>
+                <property key="colorOrderMode" type="enumeration" defaultValue="appearance">
+                    <caption>Colour order</caption>
+                    <description>How colours rank against each other when sorting by colour.</description>
+                    <enumerationValues>
+                        <enumerationValue key="appearance">Order of first appearance</enumerationValue>
+                        <enumerationValue key="value">Colour value</enumerationValue>
+                        <enumerationValue key="custom">Custom list</enumerationValue>
+                    </enumerationValues>
+                </property>
+                <property key="colorOrderList" type="string" required="false">
+                    <caption>Custom colour order</caption>
+                    <description>Comma separated list of CSS colours, most significant first. Colours not listed sort last.</description>
+                </property>
+            </propertyGroup>
+            <propertyGroup caption="Bar order">
+                <property key="barSortMode" type="enumeration" defaultValue="datasource">
+                    <caption>Order bars by</caption>
+                    <description />
+                    <enumerationValues>
+                        <enumerationValue key="datasource">Data source order</enumerationValue>
+                        <enumerationValue key="key">Bar key</enumerationValue>
+                        <enumerationValue key="label">Bar caption</enumerationValue>
+                        <enumerationValue key="total">Total value</enumerationValue>
+                        <enumerationValue key="count">Element count</enumerationValue>
+                    </enumerationValues>
+                </property>
+                <property key="barSortDirection" type="enumeration" defaultValue="asc">
+                    <caption>Bar order direction</caption>
+                    <description />
+                    <enumerationValues>
+                        <enumerationValue key="asc">Ascending</enumerationValue>
+                        <enumerationValue key="desc">Descending</enumerationValue>
+                    </enumerationValues>
+                </property>
+            </propertyGroup>
+        </propertyGroup>
+
+        <propertyGroup caption="Appearance">
+            <propertyGroup caption="Layout">
+                <property key="heightMode" type="enumeration" defaultValue="fixed">
+                    <caption>Height</caption>
+                    <description />
+                    <enumerationValues>
+                        <enumerationValue key="fixed">Fixed pixels</enumerationValue>
+                        <enumerationValue key="ratio">Aspect ratio</enumerationValue>
+                        <enumerationValue key="parent">Fill parent</enumerationValue>
+                    </enumerationValues>
+                </property>
+                <property key="heightValue" type="integer" defaultValue="420">
+                    <caption>Height value</caption>
+                    <description>Pixels for fixed height, or percentage of the width for aspect ratio.</description>
+                </property>
+                <property key="barWidth" type="integer" defaultValue="56">
+                    <caption>Bar width (px)</caption>
+                    <description />
+                </property>
+                <property key="barGap" type="integer" defaultValue="24">
+                    <caption>Gap between bars (px)</caption>
+                    <description />
+                </property>
+                <property key="segmentGap" type="integer" defaultValue="2">
+                    <caption>Gap between elements (px)</caption>
+                    <description />
+                </property>
+                <property key="cornerRadius" type="integer" defaultValue="6">
+                    <caption>Corner radius (px)</caption>
+                    <description />
+                </property>
+            </propertyGroup>
+            <propertyGroup caption="Chart">
+                <property key="stackMode" type="enumeration" defaultValue="absolute">
+                    <caption>Stacking</caption>
+                    <description />
+                    <enumerationValues>
+                        <enumerationValue key="absolute">Absolute values</enumerationValue>
+                        <enumerationValue key="percentage">100% stacked</enumerationValue>
+                    </enumerationValues>
+                </property>
+                <property key="showValueAxis" type="boolean" defaultValue="true">
+                    <caption>Show value axis</caption>
+                    <description />
+                </property>
+                <property key="valueAxisTitle" type="string" required="false">
+                    <caption>Value axis title</caption>
+                    <description />
+                </property>
+                <property key="showGridLines" type="boolean" defaultValue="true">
+                    <caption>Show grid lines</caption>
+                    <description />
+                </property>
+                <property key="showCategoryAxis" type="boolean" defaultValue="true">
+                    <caption>Show bar captions</caption>
+                    <description />
+                </property>
+                <property key="showBarTotals" type="boolean" defaultValue="true">
+                    <caption>Show bar totals</caption>
+                    <description />
+                </property>
+                <property key="showElementLabels" type="enumeration" defaultValue="whenfits">
+                    <caption>Show element labels</caption>
+                    <description />
+                    <enumerationValues>
+                        <enumerationValue key="never">Never</enumerationValue>
+                        <enumerationValue key="whenfits">When the element is tall enough</enumerationValue>
+                    </enumerationValues>
+                </property>
+                <property key="showLegend" type="boolean" defaultValue="false">
+                    <caption>Show legend</caption>
+                    <description>Lists the distinct series or colours. Hovering a legend entry highlights matching elements.</description>
+                </property>
+                <property key="emptyMessage" type="string" required="false" defaultValue="No data to display">
+                    <caption>Empty message</caption>
+                    <description />
+                </property>
+            </propertyGroup>
+        </propertyGroup>
+
+        <propertyGroup caption="Tooltip">
+            <propertyGroup caption="Tooltip">
+                <property key="tooltipMode" type="enumeration" defaultValue="fields">
+                    <caption>Tooltip</caption>
+                    <description />
+                    <enumerationValues>
+                        <enumerationValue key="none">Off</enumerationValue>
+                        <enumerationValue key="fields">Show configured fields</enumerationValue>
+                    </enumerationValues>
+                </property>
+                <property key="tooltipTitleTemplate" type="textTemplate" dataSource="datasource" required="false">
+                    <caption>Tooltip title</caption>
+                    <description>Defaults to the element label.</description>
+                </property>
+                <property key="tooltipShowValue" type="boolean" defaultValue="true">
+                    <caption>Show value</caption>
+                    <description />
+                </property>
+                <property key="tooltipShowPercentage" type="boolean" defaultValue="true">
+                    <caption>Show share of bar</caption>
+                    <description />
+                </property>
+                <property key="tooltipFields" type="object" isList="true" required="false">
+                    <caption>Tooltip fields</caption>
+                    <description>Extra rows shown in the tooltip. Evaluated only for the element actually being hovered.</description>
+                    <properties>
+                        <propertyGroup caption="Field">
+                            <property key="fieldCaption" type="string" required="true">
+                                <caption>Caption</caption>
+                                <description />
+                            </property>
+                            <property key="fieldValue" type="textTemplate" dataSource="../datasource" required="true">
+                                <caption>Value</caption>
+                                <description />
+                            </property>
+                            <property key="fieldVisible" type="expression" dataSource="../datasource" required="false" defaultValue="true">
+                                <caption>Visible</caption>
+                                <description />
+                                <returnType type="Boolean" />
+                            </property>
+                        </propertyGroup>
+                    </properties>
+                </property>
+                <property key="tooltipShowDelay" type="integer" defaultValue="80">
+                    <caption>Show delay (ms)</caption>
+                    <description />
+                </property>
+                <property key="tooltipHideDelay" type="integer" defaultValue="120">
+                    <caption>Hide delay (ms)</caption>
+                    <description />
+                </property>
+            </propertyGroup>
+        </propertyGroup>
+
+        <propertyGroup caption="Element menu">
+            <propertyGroup caption="Element menu">
+                <property key="enableElementMenu" type="boolean" defaultValue="true">
+                    <caption>Enable element menu</caption>
+                    <description>Clicking an element opens a menu of the actions configured below.</description>
+                </property>
+                <property key="menuTitleTemplate" type="textTemplate" dataSource="datasource" required="false">
+                    <caption>Menu title</caption>
+                    <description>Defaults to the element label.</description>
+                </property>
+                <property key="menuItems" type="object" isList="true" required="false">
+                    <caption>Menu items</caption>
+                    <description>Each item receives the clicked element as its microflow or nanoflow parameter, so it can edit the value, open a page, delete it, and so on.</description>
+                    <properties>
+                        <propertyGroup caption="Item">
+                            <property key="itemCaption" type="textTemplate" dataSource="../datasource" required="true">
+                                <caption>Caption</caption>
+                                <description />
+                            </property>
+                            <property key="itemIcon" type="icon" required="false">
+                                <caption>Icon</caption>
+                                <description />
+                            </property>
+                            <property key="itemAction" type="action" dataSource="../datasource" required="false" defaultType="CallMicroflow">
+                                <caption>On click</caption>
+                                <description />
+                            </property>
+                            <property key="itemVisible" type="expression" dataSource="../datasource" required="false" defaultValue="true">
+                                <caption>Visible</caption>
+                                <description />
+                                <returnType type="Boolean" />
+                            </property>
+                            <property key="itemStyle" type="enumeration" defaultValue="default">
+                                <caption>Style</caption>
+                                <description />
+                                <enumerationValues>
+                                    <enumerationValue key="default">Default</enumerationValue>
+                                    <enumerationValue key="primary">Primary</enumerationValue>
+                                    <enumerationValue key="destructive">Destructive</enumerationValue>
+                                </enumerationValues>
+                            </property>
+                        </propertyGroup>
+                    </properties>
+                </property>
+            </propertyGroup>
+        </propertyGroup>
+
+        <propertyGroup caption="Add element">
+            <propertyGroup caption="Add button">
+                <property key="showAddButton" type="enumeration" defaultValue="hover">
+                    <caption>Add button</caption>
+                    <description>A circled plus shown on top of every bar.</description>
+                    <enumerationValues>
+                        <enumerationValue key="always">Always visible</enumerationValue>
+                        <enumerationValue key="hover">Visible on hover or focus</enumerationValue>
+                        <enumerationValue key="never">Hidden</enumerationValue>
+                    </enumerationValues>
+                </property>
+                <property key="addButtonTooltip" type="string" required="false" defaultValue="Add element">
+                    <caption>Add button tooltip</caption>
+                    <description />
+                </property>
+                <property key="addMode" type="enumeration" defaultValue="single">
+                    <caption>On click</caption>
+                    <description />
+                    <enumerationValues>
+                        <enumerationValue key="single">Call one action</enumerationValue>
+                        <enumerationValue key="menu">Open a menu of actions</enumerationValue>
+                    </enumerationValues>
+                </property>
+                <property key="onAddElement" type="action" required="false" defaultType="CallMicroflow">
+                    <caption>Add action</caption>
+                    <description>Called with the context of the bar whose plus button was clicked.</description>
+                    <actionVariables>
+                        <actionVariable key="barKey" type="String" caption="Bar key" />
+                        <actionVariable key="barIndex" type="Integer" caption="Bar index" />
+                        <actionVariable key="insertIndex" type="Integer" caption="Insert index" />
+                        <actionVariable key="barTotal" type="Decimal" caption="Current bar total" />
+                    </actionVariables>
+                </property>
+                <property key="onBarAdd" type="action" dataSource="barsDatasource" required="false" defaultType="CallMicroflow">
+                    <caption>Add action (bars list)</caption>
+                    <description>Used instead of the action above when a bars data source is configured, so the microflow receives the bar object itself.</description>
+                </property>
+                <property key="addMenuItems" type="object" isList="true" required="false">
+                    <caption>Add menu items</caption>
+                    <description>Shown when the plus button opens a menu.</description>
+                    <properties>
+                        <propertyGroup caption="Item">
+                            <property key="addItemCaption" type="string" required="true">
+                                <caption>Caption</caption>
+                                <description />
+                            </property>
+                            <property key="addItemIcon" type="icon" required="false">
+                                <caption>Icon</caption>
+                                <description />
+                            </property>
+                            <property key="addItemAction" type="action" required="false" defaultType="CallMicroflow">
+                                <caption>On click</caption>
+                                <description />
+                                <actionVariables>
+                                    <actionVariable key="barKey" type="String" caption="Bar key" />
+                                    <actionVariable key="barIndex" type="Integer" caption="Bar index" />
+                                    <actionVariable key="insertIndex" type="Integer" caption="Insert index" />
+                                    <actionVariable key="barTotal" type="Decimal" caption="Current bar total" />
+                                </actionVariables>
+                            </property>
+                        </propertyGroup>
+                    </properties>
+                </property>
+            </propertyGroup>
+        </propertyGroup>
+
+        <propertyGroup caption="Drag and drop">
+            <propertyGroup caption="Drag and drop">
+                <property key="enableDragDrop" type="boolean" defaultValue="false">
+                    <caption>Enable drag and drop</caption>
+                    <description />
+                </property>
+                <property key="allowReorderWithinBar" type="boolean" defaultValue="true">
+                    <caption>Allow reordering within a bar</caption>
+                    <description />
+                </property>
+                <property key="allowMoveAcrossBars" type="boolean" defaultValue="true">
+                    <caption>Allow moving between bars</caption>
+                    <description />
+                </property>
+                <property key="draggableExpression" type="expression" dataSource="datasource" required="false" defaultValue="true">
+                    <caption>Element is draggable</caption>
+                    <description />
+                    <returnType type="Boolean" />
+                </property>
+                <property key="acceptsDropExpression" type="expression" dataSource="barsDatasource" required="false" defaultValue="true">
+                    <caption>Bar accepts drops</caption>
+                    <description>Only available when a bars data source is configured.</description>
+                    <returnType type="Boolean" />
+                </property>
+                <property key="sequenceAttribute" type="attribute" dataSource="datasource" required="false">
+                    <caption>Sequence attribute</caption>
+                    <description>Optional. When set, the widget writes the new position into this attribute itself using a fractional index, so simple reordering needs no microflow.</description>
+                    <attributeTypes>
+                        <attributeType name="Decimal" />
+                        <attributeType name="Integer" />
+                        <attributeType name="Long" />
+                    </attributeTypes>
+                </property>
+                <property key="onDrop" type="action" dataSource="datasource" required="false" defaultType="CallMicroflow">
+                    <caption>On drop</caption>
+                    <description>Receives the dragged element as its parameter, plus the drop context as action variables.</description>
+                    <actionVariables>
+                        <actionVariable key="sourceBarKey" type="String" caption="Source bar key" />
+                        <actionVariable key="targetBarKey" type="String" caption="Target bar key" />
+                        <actionVariable key="sourceIndex" type="Integer" caption="Source index" />
+                        <actionVariable key="targetIndex" type="Integer" caption="Target index" />
+                        <actionVariable key="previousElementGuid" type="String" caption="Element below the drop position" />
+                        <actionVariable key="nextElementGuid" type="String" caption="Element above the drop position" />
+                    </actionVariables>
+                </property>
+                <property key="dropCommitTimeout" type="integer" defaultValue="8000">
+                    <caption>Commit timeout (ms)</caption>
+                    <description>If the data source does not confirm the move within this time, the optimistic move is rolled back.</description>
+                </property>
+            </propertyGroup>
+            <propertyGroup caption="Confirmation">
+                <property key="confirmationMode" type="enumeration" defaultValue="none">
+                    <caption>Confirm before moving</caption>
+                    <description />
+                    <enumerationValues>
+                        <enumerationValue key="none">No confirmation</enumerationValue>
+                        <enumerationValue key="dialog">Built-in dialog</enumerationValue>
+                        <enumerationValue key="action">Call an action</enumerationValue>
+                    </enumerationValues>
+                </property>
+                <property key="confirmTitle" type="textTemplate" dataSource="datasource" required="false">
+                    <caption>Dialog title</caption>
+                    <description />
+                </property>
+                <property key="confirmMessage" type="textTemplate" dataSource="datasource" required="false">
+                    <caption>Dialog message</caption>
+                    <description />
+                </property>
+                <property key="confirmOkCaption" type="string" required="false" defaultValue="Move">
+                    <caption>Confirm caption</caption>
+                    <description />
+                </property>
+                <property key="confirmCancelCaption" type="string" required="false" defaultValue="Cancel">
+                    <caption>Cancel caption</caption>
+                    <description />
+                </property>
+                <property key="onDropConfirmRequest" type="action" dataSource="datasource" required="false" defaultType="CallMicroflow">
+                    <caption>Confirmation action</caption>
+                    <description>Called instead of the built-in dialog. Typically opens a confirmation page which then performs the move itself.</description>
+                    <actionVariables>
+                        <actionVariable key="sourceBarKey" type="String" caption="Source bar key" />
+                        <actionVariable key="targetBarKey" type="String" caption="Target bar key" />
+                        <actionVariable key="sourceIndex" type="Integer" caption="Source index" />
+                        <actionVariable key="targetIndex" type="Integer" caption="Target index" />
+                        <actionVariable key="previousElementGuid" type="String" caption="Element below the drop position" />
+                        <actionVariable key="nextElementGuid" type="String" caption="Element above the drop position" />
+                    </actionVariables>
+                </property>
+            </propertyGroup>
+        </propertyGroup>
+
+        <propertyGroup caption="Advanced">
+            <propertyGroup caption="Motion">
+                <property key="enableAnimations" type="boolean" defaultValue="true">
+                    <caption>Enable animations</caption>
+                    <description>Always disabled when the operating system requests reduced motion.</description>
+                </property>
+                <property key="animationDuration" type="integer" defaultValue="320">
+                    <caption>Animation duration (ms)</caption>
+                    <description />
+                </property>
+                <property key="animationDisableThreshold" type="integer" defaultValue="1500">
+                    <caption>Disable animation above</caption>
+                    <description>Animations switch off automatically when more than this many elements are rendered at once.</description>
+                </property>
+            </propertyGroup>
+            <propertyGroup caption="Rendering">
+                <property key="virtualizationOverscan" type="integer" defaultValue="3">
+                    <caption>Overscan (bars)</caption>
+                    <description>How many bars to render beyond each edge of the viewport.</description>
+                </property>
+                <property key="sliverClustering" type="boolean" defaultValue="false">
+                    <caption>Cluster sub-pixel elements</caption>
+                    <description>Purely visual. When enabled, runs of adjacent elements too small to render are drawn as one striped block that reports how many elements it covers. Elements are never merged in the data.</description>
+                </property>
+                <property key="sliverThreshold" type="integer" defaultValue="2">
+                    <caption>Cluster below (px)</caption>
+                    <description />
+                </property>
+            </propertyGroup>
+        </propertyGroup>
+
+        <propertyGroup caption="Common">
+            <propertyGroup caption="Common">
+                <systemProperty key="Name" />
+                <systemProperty key="TabIndex" />
+                <systemProperty key="Visibility" />
+            </propertyGroup>
+        </propertyGroup>
+
+    </properties>
+</widget>
