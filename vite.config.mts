@@ -16,6 +16,7 @@ export default defineConfig({
     resolve: {
         alias: {
             // The real `mendix` package is types-only and throws at runtime.
+            "mendix/components/web/Icon": resolve(__dirname, "dev/mendixIcon.tsx"),
             mendix: resolve(__dirname, "dev/mendixRuntime.ts")
         }
     },
