@@ -25,6 +25,9 @@
                         <attributeType name="DateTime" />
                         <attributeType name="Boolean" />
                     </attributeTypes>
+                    <associationTypes>
+                        <associationType name="Reference" />
+                    </associationTypes>
                 </property>
                 <property key="valueAttribute" type="attribute" dataSource="datasource" required="true">
                     <caption>Value</caption>
@@ -48,6 +51,9 @@
                         <attributeType name="Long" />
                         <attributeType name="AutoNumber" />
                     </attributeTypes>
+                    <associationTypes>
+                        <associationType name="Reference" />
+                    </associationTypes>
                 </property>
                 <property key="maxItems" type="integer" defaultValue="0">
                     <caption>Maximum elements</caption>
@@ -106,6 +112,9 @@
                         <attributeType name="String" />
                         <attributeType name="Enum" />
                     </attributeTypes>
+                    <associationTypes>
+                        <associationType name="Reference" />
+                    </associationTypes>
                 </property>
                 <property key="seriesAttribute" type="attribute" dataSource="datasource" required="false">
                     <caption>Series attribute</caption>
@@ -117,6 +126,9 @@
                         <attributeType name="Integer" />
                         <attributeType name="Long" />
                     </attributeTypes>
+                    <associationTypes>
+                        <associationType name="Reference" />
+                    </associationTypes>
                 </property>
                 <property key="palette" type="enumeration" defaultValue="vivid">
                     <caption>Palette</caption>
@@ -163,6 +175,9 @@
                                     <attributeType name="Decimal" />
                                     <attributeType name="DateTime" />
                                 </attributeTypes>
+                                <associationTypes>
+                                    <associationType name="Reference" />
+                                </associationTypes>
                             </property>
                             <property key="sortDirection" type="enumeration" defaultValue="asc">
                                 <caption>Direction</caption>
