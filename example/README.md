@@ -2,6 +2,12 @@
 
 A small Mendix app that uses the Stacked Bar Chart widget for its main screen.
 
+> **This folder holds the scripts that build the app, not the app itself.**
+> There is no `.mpr` here. The MDL files in `mdl/` are the complete
+> definition — domain model, pages, microflows, navigation and demo data — and
+> [How it was built](#how-it-was-built) below turns them into a working project
+> in about a minute.
+
 People book hours on a day. Every booking is charged to a **charging code**,
 and the code carries the colour its bookings are drawn in — so the chart's
 colours are maintained in an ordinary table, not in the widget.
