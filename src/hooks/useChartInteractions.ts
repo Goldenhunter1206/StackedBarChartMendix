@@ -1,4 +1,4 @@
-import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ChartBar, ChartElement, ChartLayout, LayoutBar, LayoutNode } from "../model/types";
 import { Rect } from "../utils/positioning";
@@ -18,7 +18,8 @@ export interface BarTarget {
 }
 
 export interface InteractionOptions {
-    scrollRef: RefObject<HTMLElement>;
+    /** The plot container. Null until it mounts, which is after the first render. */
+    scrollElement: HTMLElement | null;
     layout: ChartLayout;
     hoverEnabled: boolean;
     clickEnabled: boolean;
@@ -46,7 +47,7 @@ export interface Interactions {
  * defeat the memoisation that keeps re-renders cheap.
  */
 export function useChartInteractions(options: InteractionOptions): Interactions {
-    const { scrollRef, layout } = options;
+    const { scrollElement, layout } = options;
     const [hover, setHover] = useState<ElementTarget | null>(null);
 
     // Handlers are attached once and read the latest values through a ref, so
@@ -72,7 +73,7 @@ export function useChartInteractions(options: InteractionOptions): Interactions 
     const clearHover = useCallback(() => setHover(null), []);
 
     useEffect(() => {
-        const container = scrollRef.current;
+        const container = scrollElement;
         if (!container) {
             return;
         }
@@ -184,7 +185,7 @@ export function useChartInteractions(options: InteractionOptions): Interactions 
             container.removeEventListener("click", onClick);
             container.removeEventListener("keydown", onKeyDown);
         };
-    }, [scrollRef]);
+    }, [scrollElement]);
 
     // A hovered element whose bar scrolled away or was removed must not keep a
     // tooltip anchored to nothing. Derived rather than cleared through state,

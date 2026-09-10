@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Big } from "big.js";
 
@@ -259,5 +259,88 @@ describe("StackedBarChart", () => {
             expect(barKeys(container).length).toBeLessThanOrEqual(45);
             expect(segments(container).length).toBeLessThan(1200);
         });
+    });
+});
+
+describe("when the data source loads after the first render", () => {
+    /*
+     * The case a real Mendix app always hits and the dev harness never did: the
+     * data source reports Loading on the first render, so the chart shows its
+     * skeleton and the plot container does not exist yet. Everything that
+     * attaches listeners to that container has to pick it up when it finally
+     * mounts.
+     */
+    function loadingThenReady() {
+        const props = widgetProps(sampleRows());
+        const loading = {
+            ...props,
+            datasource: listValue([], { status: "loading" as never, items: undefined, totalCount: undefined })
+        };
+        return { loading, ready: props };
+    }
+
+    it("still shows the tooltip on hover", async () => {
+        const user = userEvent.setup();
+        const { loading, ready } = loadingThenReady();
+
+        const { container, rerender } = render(<StackedBarChart {...loading} />);
+        expect(container.querySelector(".sbc-skeleton")).toBeInTheDocument();
+
+        rerender(<StackedBarChart {...ready} />);
+        await user.hover(segments(container)[0]);
+
+        expect(await screen.findByRole("tooltip")).toBeInTheDocument();
+    });
+
+    it("still opens the element menu on click", async () => {
+        const user = userEvent.setup();
+        const { loading, ready } = loadingThenReady();
+        const action = listAction();
+        const menuItems = [
+            {
+                itemCaption: listExpression<string>(() => "Edit"),
+                itemIcon: undefined,
+                itemAction: action,
+                itemVisible: undefined,
+                itemStyle: "default" as const
+            }
+        ];
+
+        const { container, rerender } = render(<StackedBarChart {...loading} menuItems={menuItems} />);
+        rerender(<StackedBarChart {...ready} menuItems={menuItems} />);
+
+        await user.click(segments(container)[0]);
+
+        expect(await screen.findByRole("menu")).toBeInTheDocument();
+    });
+
+    it("still fires the add action", async () => {
+        const user = userEvent.setup();
+        const { loading, ready } = loadingThenReady();
+
+        const { container, rerender } = render(<StackedBarChart {...loading} />);
+        rerender(<StackedBarChart {...ready} />);
+
+        await user.click(container.querySelector<HTMLElement>('[data-add="Mon"]')!);
+
+        expect(ready.onAddElement!.execute).toHaveBeenCalledTimes(1);
+    });
+
+    it("still starts a drag", async () => {
+        const { loading, ready } = loadingThenReady();
+        const dragProps = { enableDragDrop: true };
+
+        const { container, rerender } = render(<StackedBarChart {...loading} {...dragProps} />);
+        rerender(<StackedBarChart {...ready} {...dragProps} />);
+
+        const first = segments(container)[0];
+        fireEvent.pointerDown(first, { button: 0, pointerId: 1, clientX: 0, clientY: 0 });
+        fireEvent.pointerMove(container.querySelector(".sbc-scroll")!, {
+            pointerId: 1,
+            clientX: 40,
+            clientY: 40
+        });
+
+        expect(document.querySelector(".sbc-ghost")).toBeInTheDocument();
     });
 });

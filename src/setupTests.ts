@@ -5,6 +5,27 @@ import "@testing-library/jest-dom";
  * the chart relies on. Stubbing them here keeps the component tests honest:
  * the widget calls the real APIs and the stubs simply record that it did.
  */
+/*
+ * jsdom has no PointerEvent, so without this the pointer-driven drag code
+ * receives events carrying no button and no coordinates, and silently does
+ * nothing — which would let a broken drag pass its tests.
+ */
+if (typeof globalThis.PointerEvent === "undefined") {
+    class PointerEventPolyfill extends MouseEvent {
+        readonly pointerId: number;
+        readonly pointerType: string;
+        readonly isPrimary: boolean;
+
+        constructor(type: string, init: PointerEventInit = {}) {
+            super(type, init);
+            this.pointerId = init.pointerId ?? 0;
+            this.pointerType = init.pointerType ?? "mouse";
+            this.isPrimary = init.isPrimary ?? true;
+        }
+    }
+    globalThis.PointerEvent = PointerEventPolyfill as unknown as typeof PointerEvent;
+}
+
 const elementProto = Element.prototype as unknown as Record<string, unknown>;
 if (typeof elementProto.setPointerCapture !== "function") {
     elementProto.setPointerCapture = () => undefined;

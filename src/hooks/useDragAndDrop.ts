@@ -1,4 +1,4 @@
-import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { barIndexAt, dropIndexAt, LayoutOptions } from "../model/layout";
 import {
@@ -31,7 +31,8 @@ export interface DragState {
 }
 
 export interface DragOptions {
-    scrollRef: RefObject<HTMLElement>;
+    /** The plot container. Null until it mounts, which is after the first render. */
+    scrollElement: HTMLElement | null;
     model: ChartModel;
     layout: ChartLayout;
     layoutOptions: LayoutOptions;
@@ -73,7 +74,7 @@ export function useDragAndDrop(options: DragOptions): DragResult {
     const cancel = useCallback(() => setDrag(null), []);
 
     useEffect(() => {
-        const container = options.scrollRef.current;
+        const container = options.scrollElement;
         if (!container) {
             return;
         }
@@ -239,7 +240,7 @@ export function useDragAndDrop(options: DragOptions): DragResult {
             window.removeEventListener("keydown", onKeyDown);
             window.removeEventListener("blur", reset);
         };
-    }, [options.scrollRef]);
+    }, [options.scrollElement]);
 
     const { model } = options;
 

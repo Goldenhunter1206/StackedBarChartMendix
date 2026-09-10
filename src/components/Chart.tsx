@@ -1,4 +1,4 @@
-import { CSSProperties, ReactElement, RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CSSProperties, ReactElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import classNames from "classnames";
 import { ValueStatus } from "mendix";
 import Big from "big.js";
@@ -26,11 +26,18 @@ import { Tooltip } from "./Tooltip";
 import { ValueAxis } from "./ValueAxis";
 
 export function Chart(props: StackedBarChartContainerProps): ReactElement {
-    const rootRef = useRef<HTMLDivElement>(null);
-    const scrollRef = useRef<HTMLDivElement>(null);
+    /*
+     * Held as state rather than in refs, through callback refs. The chart
+     * renders a skeleton until its data source resolves, so the plot container
+     * does not exist on the first render — and an effect keyed on a ref object
+     * cannot notice it appearing, because the ref's identity never changes.
+     * Every listener below hangs off that container.
+     */
+    const [rootElement, setRootElement] = useState<HTMLDivElement | null>(null);
+    const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(null);
 
-    const rootSize = useElementSize(rootRef);
-    const viewport = useElementSize(scrollRef);
+    const rootSize = useElementSize(rootElement);
+    const viewport = useElementSize(scrollElement);
 
     const model = useChartModel(props);
 
@@ -148,7 +155,7 @@ export function Chart(props: StackedBarChartContainerProps): ReactElement {
     );
 
     const { drag, previewModel } = useDragAndDrop({
-        scrollRef,
+        scrollElement,
         model: optimisticModel,
         layout: baseLayout,
         layoutOptions,
@@ -169,7 +176,7 @@ export function Chart(props: StackedBarChartContainerProps): ReactElement {
 
     const pitch = layoutOptions.barWidth + layoutOptions.barGap;
     const range = useVirtualBars(
-        scrollRef,
+        scrollElement,
         layout.bars.length,
         pitch,
         viewport.width,
@@ -214,7 +221,7 @@ export function Chart(props: StackedBarChartContainerProps): ReactElement {
     );
 
     const { hover } = useChartInteractions({
-        scrollRef,
+        scrollElement,
         layout,
         hoverEnabled: props.tooltipMode !== "none" && menu === null,
         clickEnabled: props.enableElementMenu && props.menuItems.length > 0,
@@ -228,7 +235,7 @@ export function Chart(props: StackedBarChartContainerProps): ReactElement {
 
     // Keyboard focus drives the scroll position, so arrow keys can walk into
     // bars that virtualization has not mounted yet.
-    useFocusFollow(focusedKey, layout, scrollRef, layoutOptions.barWidth + layoutOptions.barGap);
+    useFocusFollow(focusedKey, layout, scrollElement, layoutOptions.barWidth + layoutOptions.barGap);
 
     const closeMenu = useCallback(() => setMenu(null), []);
     const menuItem = menu?.kind === "element" ? menu.target.element.item : undefined;
@@ -279,7 +286,7 @@ export function Chart(props: StackedBarChartContainerProps): ReactElement {
 
     if (props.datasource.status === ValueStatus.Loading && model.bars.length === 0) {
         return (
-            <div ref={rootRef} className={classNames("sbc", props.class)} style={rootStyle}>
+            <div ref={setRootElement} className={classNames("sbc", props.class)} style={rootStyle}>
                 <LoadingSkeleton />
             </div>
         );
@@ -287,7 +294,7 @@ export function Chart(props: StackedBarChartContainerProps): ReactElement {
 
     if (model.bars.length === 0) {
         return (
-            <div ref={rootRef} className={classNames("sbc", props.class)} style={rootStyle}>
+            <div ref={setRootElement} className={classNames("sbc", props.class)} style={rootStyle}>
                 <EmptyState message={props.emptyMessage} />
             </div>
         );
@@ -297,7 +304,7 @@ export function Chart(props: StackedBarChartContainerProps): ReactElement {
 
     return (
         <div
-            ref={rootRef}
+            ref={setRootElement}
             className={classNames("sbc", props.class, {
                 "sbc--no-motion": !animate,
                 "sbc--draggable": props.enableDragDrop
@@ -330,7 +337,7 @@ export function Chart(props: StackedBarChartContainerProps): ReactElement {
                     />
                 ) : null}
 
-                <div className="sbc-scroll" ref={scrollRef}>
+                <div className="sbc-scroll" ref={setScrollElement}>
                     <div className="sbc-canvas" style={{ width: `${layout.contentWidth}px`, height: "100%" }}>
                         {props.showGridLines ? (
                             <GridLines ticks={layout.ticks} axisMax={layout.axisMax} plotHeight={plotHeight} />
@@ -495,22 +502,24 @@ function clampIndex(value: number, length: number): number {
 function useFocusFollow(
     focusedKey: string | null,
     layout: ReturnType<typeof layoutChart>,
-    scrollRef: RefObject<HTMLElement>,
+    scrollElement: HTMLElement | null,
     pitch: number
 ): void {
     useEffect(() => {
         if (!focusedKey) {
             return;
         }
-        const container = scrollRef.current;
+        const container = scrollElement;
         const barIndex = layout.bars.findIndex(bar => bar.nodes.some(node => node.key === focusedKey));
         if (container && barIndex >= 0) {
             const left = layout.bars[barIndex].x;
             const right = left + layout.bars[barIndex].width;
+            // scrollTo rather than assigning scrollLeft: this element comes from
+            // state, and assigning through it reads as mutating state.
             if (left < container.scrollLeft) {
-                container.scrollLeft = Math.max(0, left - pitch);
+                container.scrollTo?.({ left: Math.max(0, left - pitch) });
             } else if (right > container.scrollLeft + container.clientWidth) {
-                container.scrollLeft = right - container.clientWidth + pitch;
+                container.scrollTo?.({ left: right - container.clientWidth + pitch });
             }
         }
 
@@ -518,7 +527,7 @@ function useFocusFollow(
             document.querySelector<HTMLElement>(`[data-el="${cssEscape(focusedKey)}"]`)?.focus();
         });
         return () => cancelAnimationFrame(frame);
-    }, [focusedKey, layout, scrollRef, pitch]);
+    }, [focusedKey, layout, scrollElement, pitch]);
 }
 
 function cssEscape(value: string): string {
